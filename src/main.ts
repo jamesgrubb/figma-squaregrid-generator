@@ -11,42 +11,51 @@ export default function () {
       figma.notify('Please select a frame');
       return;
     }
-    const frame = figma.currentPage.selection[0] as FrameNode;
-    const frameWidth = frame.width;
-    const frameHeight = frame.height;
+    const selectedFrame = figma.currentPage.selection[0] as FrameNode;
+    const frameWidth = selectedFrame.width;
+    const frameHeight = selectedFrame.height;
     
     var grid = fitSquaresInRectangle(frameWidth, frameHeight, cells);
     var nrows = grid.nrows;
     var ncols = grid.ncols;
     var cell_size = grid.cell_size;
-    
-    // Check if the grid can be perfectly centered
-    const horizontalRemainder = frameWidth - (cell_size * ncols);
-    const verticalRemainder = frameHeight - (cell_size * nrows);
-    
-    if (horizontalRemainder % 2 !== 0 || verticalRemainder % 2 !== 0) {
-      figma.notify('Cannot create a perfectly centered grid. Skipping.');
-      return;
+
+    // Calculate grid size
+    const gridWidth = cell_size * ncols;
+    const gridHeight = cell_size * nrows;
+
+    // Convert selected frame to auto layout with fixed size
+    selectedFrame.layoutMode = 'HORIZONTAL';
+    selectedFrame.primaryAxisAlignItems = 'CENTER';
+    selectedFrame.counterAxisAlignItems = 'CENTER';
+    selectedFrame.primaryAxisSizingMode = 'FIXED';
+    selectedFrame.counterAxisSizingMode = 'FIXED';
+    selectedFrame.resize(frameWidth, frameHeight);
+
+    // Remove existing grid frame if it exists
+    const existingGridFrame = selectedFrame.findChild(n => n.name === 'GridFrame');
+    if (existingGridFrame) {
+      existingGridFrame.remove();
     }
-    
+
+    // Create new child frame for grid
+    const gridFrame = figma.createFrame();
+    gridFrame.name = 'GridFrame';
+    gridFrame.resize(gridWidth, gridHeight);
+    selectedFrame.appendChild(gridFrame);
+
     let LayoutGrids: LayoutGrid[] = [
       {
-        pattern: 'COLUMNS',
-        alignment: 'STRETCH',
-        gutterSize: 0,
-        count: ncols,
-        offset: horizontalRemainder / 2
-      },
-      {
-        pattern: 'ROWS',
-        alignment: 'STRETCH',
-        gutterSize: 0,
-        count: nrows,
-        offset: verticalRemainder / 2
+        pattern: 'GRID',
+        sectionSize: cell_size,
+        visible: true,
+        color: { r: 0.1, g: 0.1, b: 0.1, a: 0.1 }
       }
     ];
 
-    frame.layoutGrids = LayoutGrids;
+    gridFrame.layoutGrids = LayoutGrids;
+
+    figma.notify('Grid created successfully');
   })
   
   showUI({
