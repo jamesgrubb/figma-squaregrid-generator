@@ -558,6 +558,10 @@ video {
   display: flex;
 }
 
+.grid {
+  display: grid;
+}
+
 .flex-row {
   flex-direction: row;
 }

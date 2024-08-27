@@ -15,6 +15,52 @@ export default function () {
     const frameWidth = frame.width;
     const frameHeight = frame.height;
     
+    var grid = fitSquaresInRectangle(frameWidth, frameHeight, cells);
+    var nrows = grid.nrows;
+    var ncols = grid.ncols;
+    var cell_size = grid.cell_size;
+    let LayoutGrids: LayoutGrid[] = [];
+    console.log(grid.cell_size);
+
+    LayoutGrids = [
+      {
+        pattern: 'COLUMNS',
+        sectionSize: cell_size,
+        gutterSize: 0,
+        count: ncols,
+        alignment: 'CENTER',
+      },
+      {
+        pattern: 'ROWS',
+        alignment: 'CENTER',
+        gutterSize: 0,
+        count: nrows,
+        sectionSize: cell_size,
+      },
+      {
+        pattern: 'COLUMNS',
+        alignment: 'STRETCH',
+        color: { r: 0, g: 1, b: 0, a: 1 },
+        // sectionSize: cell_size,
+        gutterSize: 0,
+        count: (frameWidth - (cell_size * ncols)) / 2 === 0 ? 0 : 1, //was 1,
+        offset: (frameWidth - (cell_size * ncols)) / 2,
+      },
+      {
+        pattern: 'ROWS',
+        alignment: 'STRETCH',
+        color: { r: 0, g: 1, b: 0, a: 1 },
+        gutterSize: 0,
+        // count: nrows,
+        count: (frameHeight - (cell_size * nrows)) / 2 === 0 ? 0 : 1, //was 1
+        // sectionSize: cell_size ignored when alignment is STRETCH and throws error,
+        offset: (frameHeight - (cell_size * nrows)) / 2,
+      }
+    ]
+
+    if (LayoutGrids.length > 0){
+      frame.layoutGrids = LayoutGrids;
+  }
 
   })
   
