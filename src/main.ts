@@ -5,63 +5,83 @@ import { showUI, on } from '@create-figma-plugin/utilities'
 
 import { GridHandler } from './types'
 export default function () {
-  on<GridHandler>('MAKE_GRID', function( cells: number ) {
-    console.log( cells )
-    if (!figma.currentPage.selection.length || figma.currentPage.selection[0].type !== 'FRAME') {
-      figma.notify('Please select a frame');
-      return;
-    }
-    const selectedFrame = figma.currentPage.selection[0] as FrameNode;
-    const frameWidth = selectedFrame.width;
-    const frameHeight = selectedFrame.height;
-    
-    var grid = fitSquaresInRectangle(frameWidth, frameHeight, cells);
-    var nrows = grid.nrows;
-    var ncols = grid.ncols;
-    var cell_size = grid.cell_size;
-
-    // Calculate grid size
-    const gridWidth = cell_size * ncols;
-    const gridHeight = cell_size * nrows;
-
-    // Convert selected frame to auto layout with fixed size
-    selectedFrame.layoutMode = 'HORIZONTAL';
-    selectedFrame.primaryAxisAlignItems = 'CENTER';
-    selectedFrame.counterAxisAlignItems = 'CENTER';
-    selectedFrame.primaryAxisSizingMode = 'FIXED';
-    selectedFrame.counterAxisSizingMode = 'FIXED';
-    selectedFrame.resize(frameWidth, frameHeight);
-
-    // Remove existing grid frame if it exists
-    const existingGridFrame = selectedFrame.findChild(n => n.name === 'GridFrame');
-    if (existingGridFrame) {
-      existingGridFrame.remove();
-    }
-
-    // Create new child frame for grid
-    const gridFrame = figma.createFrame();
-    gridFrame.name = 'GridFrame';
-    gridFrame.resize(gridWidth, gridHeight);
-    selectedFrame.appendChild(gridFrame);
-
-    let LayoutGrids: LayoutGrid[] = [
-      {
-        pattern: 'GRID',
-        sectionSize: cell_size,
-        visible: true,
-        color: { r: 0.1, g: 0.1, b: 0.1, a: 0.1 }
-      }
-    ];
-
-    gridFrame.layoutGrids = LayoutGrids;
-
-    figma.notify('Grid created successfully');
+  on<GridHandler>('UPDATE_GRID', function({ cellCount, padding }) {
+    updateGrid(cellCount, padding)
   })
   
   showUI({
-    height: 160,
+    height: 240,
     width: 240
   })
+}
+
+function updateGrid(cells: number, padding: number) {
+  if (!figma.currentPage.selection.length || figma.currentPage.selection[0].type !== 'FRAME') {
+    figma.notify('Please select a frame');
+    return;
+  }
+  const selectedFrame = figma.currentPage.selection[0] as FrameNode;
+  const frameWidth = selectedFrame.width;
+  const frameHeight = selectedFrame.height;
+  
+  const paddingValue = padding / 100 // Convert percentage to decimal
+  const availableWidth = frameWidth * (1 - paddingValue)
+  const availableHeight = frameHeight * (1 - paddingValue)
+  
+  var grid = fitSquaresInRectangle(availableWidth, availableHeight, cells);
+  var nrows = grid.nrows;
+  var ncols = grid.ncols;
+  var cell_size = grid.cell_size;
+
+  // Calculate grid size
+  const gridWidth = cell_size * ncols;
+  const gridHeight = cell_size * nrows;
+
+  // Convert selected frame to auto layout with fixed size
+  selectedFrame.layoutMode = 'HORIZONTAL';
+  selectedFrame.primaryAxisAlignItems = 'CENTER';
+  selectedFrame.counterAxisAlignItems = 'CENTER';
+  selectedFrame.primaryAxisSizingMode = 'FIXED';
+  selectedFrame.counterAxisSizingMode = 'FIXED';
+  selectedFrame.resize(frameWidth, frameHeight);
+
+  // Remove existing grid frame if it exists
+  const existingGridFrame = selectedFrame.findChild(n => n.name === 'GridFrame');
+  if (existingGridFrame) {
+    existingGridFrame.remove();
+  }
+
+  // Create new child frame for grid
+  const gridFrame = figma.createFrame();
+  gridFrame.name = 'GridFrame';
+  gridFrame.resize(gridWidth, gridHeight);
+  gridFrame.x = (frameWidth - gridWidth) / 2;
+  gridFrame.y = (frameHeight - gridHeight) / 2;
+  selectedFrame.appendChild(gridFrame);
+
+  // Create cells
+  for (let i = 0; i < nrows; i++) {
+    for (let j = 0; j < ncols; j++) {
+      const cell = figma.createFrame();
+      cell.resize(cell_size, cell_size);
+      cell.x = j * cell_size;
+      cell.y = i * cell_size;
+      gridFrame.appendChild(cell);
+    }
+  }
+
+  let LayoutGrids: LayoutGrid[] = [
+    {
+      pattern: 'GRID',
+      sectionSize: cell_size,
+      visible: true,
+      color: { r: 0.1, g: 0.1, b: 0.1, a: 0.1 }
+    }
+  ];
+
+  gridFrame.layoutGrids = LayoutGrids;
+
+  figma.notify('Grid updated');
 }
 
 function fitSquaresInRectangle(x: number, y: number, n: number) {

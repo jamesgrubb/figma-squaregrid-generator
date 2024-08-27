@@ -1,29 +1,50 @@
-import { render, IconPlus32, Container, IconButton } from '@create-figma-plugin/ui'
-import {emit} from '@create-figma-plugin/utilities'
-import { useCallback, useState } from 'preact/hooks'
 import { h } from 'preact'
-import '!./output.css'
-import { GridHandler } from './types'
+import { useState, useEffect } from 'preact/hooks'
+import { 
+  Button,
+  Container,
+  RangeSlider,
+  Text,
+  VerticalSpace,
+  render
+} from '@create-figma-plugin/ui'
+import { emit } from '@create-figma-plugin/utilities'
 
-function Plugin () {
+function Plugin() {
+  const [cellCount, setCellCount] = useState(4)
+  const [padding, setPadding] = useState(0)
 
-const [cells,setCells] = useState(10)
-const handleCellIncrement = useCallback(
+  useEffect(() => {
+    emit('UPDATE_GRID', { cellCount, padding })
+  }, [cellCount, padding])
 
-  function() {
-    setCells(cells + 1)
-    emit<GridHandler>('MAKE_GRID', cells)
-  },
-  [cells]
-)
+  const handleCellCountChange = (value: string) => {
+    setCellCount(parseInt(value, 10))
+  }
+
+  const handlePaddingChange = (value: string) => {
+    setPadding(parseInt(value, 10))
+  }
+
   return (
-    <Container className="flex flex-row" space='medium' >
-      <div>
-    <h1 class="text-3xl font-bold underline">
-      Hello, World!
-    </h1>
-    </div>
-    <IconButton onClick={handleCellIncrement}><IconPlus32 /></IconButton>
+    <Container space="medium">
+      <VerticalSpace space="large" />
+      <Text>Number of cells: {cellCount}</Text>
+      <RangeSlider
+        maximum={100}
+        minimum={1}
+        onValueInput={handleCellCountChange}
+        value={cellCount.toString()}
+      />
+      <VerticalSpace space="medium" />
+      <Text>Padding: {padding}%</Text>
+      <RangeSlider
+        maximum={50}
+        minimum={0}
+        onValueInput={handlePaddingChange}
+        value={padding.toString()}
+      />
+      <VerticalSpace space="large" />
     </Container>
   )
 }
