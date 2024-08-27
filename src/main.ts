@@ -4,9 +4,14 @@
 import { showUI, on } from '@create-figma-plugin/utilities'
 
 import { GridHandler } from './types'
+
 export default function () {
+  checkSelection()
+
   on<GridHandler>('UPDATE_GRID', function({ cellCount, padding }) {
-    updateGrid(cellCount, padding)
+    if (checkSelection()) {
+      updateGrid(cellCount, padding)
+    }
   })
   
   showUI({
@@ -15,12 +20,31 @@ export default function () {
   })
 }
 
-function updateGrid(cells: number, padding: number) {
-  if (!figma.currentPage.selection.length || figma.currentPage.selection[0].type !== 'FRAME') {
+function checkSelection(): boolean {
+  if (!figma.currentPage.selection.length) {
     figma.notify('Please select a frame');
-    return;
+    return false;
   }
-  const selectedFrame = figma.currentPage.selection[0] as FrameNode;
+
+  let selectedFrame = figma.currentPage.selection[0];
+
+  if (selectedFrame.type !== 'FRAME') {
+    figma.notify('Please select a frame, not another type of element');
+    return false;
+  }
+
+  return true;
+}
+
+function updateGrid(cells: number, padding: number) {
+  let selectedFrame = figma.currentPage.selection[0] as FrameNode;
+
+  // Check if the selected frame is the GridFrame and select its parent if so
+  if (selectedFrame.name === 'GridFrame' && selectedFrame.parent && selectedFrame.parent.type === 'FRAME') {
+    selectedFrame = selectedFrame.parent as FrameNode;
+    figma.currentPage.selection = [selectedFrame];
+  }
+
   const frameWidth = selectedFrame.width;
   const frameHeight = selectedFrame.height;
   
