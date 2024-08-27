@@ -1,6 +1,7 @@
 import { h } from 'preact'
 import { useState, useEffect } from 'preact/hooks'
 import { 
+  Toggle,
   Button,
   Container,
   RangeSlider,
@@ -26,6 +27,24 @@ function Plugin() {
     setPadding(parseInt(value, 10))
   }
 
+  const [isEnabled, setIsEnabled] = useState(false);
+  const [autoPopulate, setAutoPopulate] = useState(false);
+
+  useEffect(() => {
+    window.onmessage = (event) => {
+      const message = event.data.pluginMessage;
+      if (message.type === 'SELECTION_CHANGED') {
+        setIsEnabled(message.isValid);
+      }
+    };
+  }, []);
+  const handleAutoPopulateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement;
+    const newValue = target?.checked;
+    setAutoPopulate(newValue);
+    parent.postMessage({ pluginMessage: { type: 'SET_AUTO_POPULATE', value: newValue } }, '*');
+  };
+
   return (
     <Container space="medium">
       <VerticalSpace space="large" />
@@ -45,6 +64,12 @@ function Plugin() {
         value={padding.toString()}
       />
       <VerticalSpace space="large" />
+      <div>
+      <Toggle onChange={handleAutoPopulateChange} value={autoPopulate}>
+      <Text>Auto-populate new frames</Text>
+    </Toggle>
+       
+      </div>
     </Container>
   )
 }
