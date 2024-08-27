@@ -5,15 +5,34 @@ import { showUI, on } from '@create-figma-plugin/utilities'
 
 import { GridHandler } from './types'
 
+let selectedFrame: FrameNode | null = null;
+let lastWidth: number = 0;
+let lastHeight: number = 0;
+let lastCells: number = 0;
+let lastPadding: number = 0;
+
 export default function () {
   checkSelection()
 
   on<GridHandler>('UPDATE_GRID', function({ cellCount, padding }) {
     if (checkSelection()) {
       updateGrid(cellCount, padding)
+      lastCells = cellCount;
+      lastPadding = padding;
     }
   })
   
+  figma.on('selectionchange', checkSelection)
+
+  // Set up an interval to check for size changes
+  setInterval(() => {
+    if (selectedFrame && (selectedFrame.width !== lastWidth || selectedFrame.height !== lastHeight)) {
+      lastWidth = selectedFrame.width;
+      lastHeight = selectedFrame.height;
+      updateGrid(lastCells, lastPadding);
+    }
+  }, 500); // Check every 500ms
+
   showUI({
     height: 240,
     width: 240
@@ -23,21 +42,29 @@ export default function () {
 function checkSelection(): boolean {
   if (!figma.currentPage.selection.length) {
     figma.notify('Please select a frame');
+    selectedFrame = null;
     return false;
   }
 
-  let selectedFrame = figma.currentPage.selection[0];
+  let frame = figma.currentPage.selection[0];
 
-  if (selectedFrame.type !== 'FRAME') {
+  if (frame.type !== 'FRAME') {
     figma.notify('Please select a frame, not another type of element');
+    selectedFrame = null;
     return false;
   }
 
+  selectedFrame = frame;
+  lastWidth = frame.width;
+  lastHeight = frame.height;
   return true;
 }
 
 function updateGrid(cells: number, padding: number) {
-  let selectedFrame = figma.currentPage.selection[0] as FrameNode;
+  if (!selectedFrame) {
+    figma.notify('Please select a frame');
+    return;
+  }
 
   // Check if the selected frame is the GridFrame and select its parent if so
   if (selectedFrame.name === 'GridFrame' && selectedFrame.parent && selectedFrame.parent.type === 'FRAME') {
@@ -61,14 +88,6 @@ function updateGrid(cells: number, padding: number) {
   const gridWidth = cell_size * ncols;
   const gridHeight = cell_size * nrows;
 
-  // Convert selected frame to auto layout with fixed size
-  selectedFrame.layoutMode = 'HORIZONTAL';
-  selectedFrame.primaryAxisAlignItems = 'CENTER';
-  selectedFrame.counterAxisAlignItems = 'CENTER';
-  selectedFrame.primaryAxisSizingMode = 'FIXED';
-  selectedFrame.counterAxisSizingMode = 'FIXED';
-  selectedFrame.resize(frameWidth, frameHeight);
-
   // Remove existing grid frame if it exists
   const existingGridFrame = selectedFrame.findChild(n => n.name === 'GridFrame');
   if (existingGridFrame) {
@@ -83,13 +102,14 @@ function updateGrid(cells: number, padding: number) {
   gridFrame.y = (frameHeight - gridHeight) / 2;
   selectedFrame.appendChild(gridFrame);
 
-  // Create cells
+  // Create cells with grey and red tones
   for (let i = 0; i < nrows; i++) {
     for (let j = 0; j < ncols; j++) {
       const cell = figma.createFrame();
       cell.resize(cell_size, cell_size);
       cell.x = j * cell_size;
       cell.y = i * cell_size;
+      cell.fills = [{ type: 'SOLID', color: generateGreyRedColor() }];
       gridFrame.appendChild(cell);
     }
   }
@@ -106,6 +126,18 @@ function updateGrid(cells: number, padding: number) {
   gridFrame.layoutGrids = LayoutGrids;
 
   figma.notify('Grid updated');
+}
+
+function generateGreyRedColor(): { r: number, g: number, b: number } {
+  const isGrey = Math.random() < 0.7; // 70% chance of grey, 30% chance of red
+
+  if (isGrey) {
+    const value = Math.random() * 0.8 + 0.1; // Grey value between 0.1 and 0.9
+    return { r: value, g: value, b: value };
+  } else {
+    const value = Math.random() * 0.6 + 0.4; // Red value between 0.4 and 1.0
+    return { r: value, g: 0, b: 0 };
+  }
 }
 
 function fitSquaresInRectangle(x: number, y: number, n: number) {
