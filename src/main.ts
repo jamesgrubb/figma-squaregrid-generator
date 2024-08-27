@@ -19,49 +19,34 @@ export default function () {
     var nrows = grid.nrows;
     var ncols = grid.ncols;
     var cell_size = grid.cell_size;
-    let LayoutGrids: LayoutGrid[] = [];
-    console.log(grid.cell_size);
-
-    LayoutGrids = [
+    
+    // Check if the grid can be perfectly centered
+    const horizontalRemainder = frameWidth - (cell_size * ncols);
+    const verticalRemainder = frameHeight - (cell_size * nrows);
+    
+    if (horizontalRemainder % 2 !== 0 || verticalRemainder % 2 !== 0) {
+      figma.notify('Cannot create a perfectly centered grid. Skipping.');
+      return;
+    }
+    
+    let LayoutGrids: LayoutGrid[] = [
       {
         pattern: 'COLUMNS',
-        sectionSize: cell_size,
+        alignment: 'STRETCH',
         gutterSize: 0,
         count: ncols,
-        alignment: 'CENTER',
+        offset: horizontalRemainder / 2
       },
       {
         pattern: 'ROWS',
-        alignment: 'CENTER',
+        alignment: 'STRETCH',
         gutterSize: 0,
         count: nrows,
-        sectionSize: cell_size,
-      },
-      {
-        pattern: 'COLUMNS',
-        alignment: 'STRETCH',
-        color: { r: 0, g: 1, b: 0, a: 1 },
-        // sectionSize: cell_size,
-        gutterSize: 0,
-        count: (frameWidth - (cell_size * ncols)) / 2 === 0 ? 0 : 1, //was 1,
-        offset: (frameWidth - (cell_size * ncols)) / 2,
-      },
-      {
-        pattern: 'ROWS',
-        alignment: 'STRETCH',
-        color: { r: 0, g: 1, b: 0, a: 1 },
-        gutterSize: 0,
-        // count: nrows,
-        count: (frameHeight - (cell_size * nrows)) / 2 === 0 ? 0 : 1, //was 1
-        // sectionSize: cell_size ignored when alignment is STRETCH and throws error,
-        offset: (frameHeight - (cell_size * nrows)) / 2,
+        offset: verticalRemainder / 2
       }
-    ]
+    ];
 
-    if (LayoutGrids.length > 0){
-      frame.layoutGrids = LayoutGrids;
-  }
-
+    frame.layoutGrids = LayoutGrids;
   })
   
   showUI({
