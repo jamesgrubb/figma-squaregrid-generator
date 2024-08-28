@@ -20,13 +20,16 @@ export default function () {
     width: 240
   })
   
-  const isFrameSelected = checkSelection()
-  emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected });
+  const initialIsFrameSelected = checkSelectionWithoutSideEffects()
+  emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected: initialIsFrameSelected });
 
   figma.on('selectionchange', () => {
-    const isFrameSelected = checkSelection()
-    emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected });})
-  checkSelection()
+    const isFrameSelected = checkSelectionWithoutSideEffects()
+    emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected });
+  
+  })
+  
+    // checkSelection()
 
   on<GridHandler>('UPDATE_GRID', function({ cellCount, padding }) {
     if (checkSelection()) {
@@ -39,7 +42,6 @@ export default function () {
   
   // figma.on('selectionchange', checkSelection)
   on<AutoPopulateHandler>('AUTO_POPULATE', function({ autoPopulate: newAutoPopulate }) {
-   
     autoPopulate = newAutoPopulate;
     if(selectedFrame && !isNewFrameSelected) {
       updateGrid(lastCells, lastPadding);
@@ -55,19 +57,47 @@ export default function () {
     }
   })
   // Set up an interval to check for size changes
-  setInterval(() => {
-    if (selectedFrame && (selectedFrame.width !== lastWidth || selectedFrame.height !== lastHeight)) {
-      lastWidth = selectedFrame.width;
-      lastHeight = selectedFrame.height;
-      updateGrid(lastCells, lastPadding);
-    }
-  }, 500); // Check every 500ms
+  // setInterval(() => {
+  //   if (selectedFrame && !isNewFrameSelected && (selectedFrame.width !== lastWidth || selectedFrame.height !== lastHeight)) {
+  //     lastWidth = selectedFrame.width;
+  //     lastHeight = selectedFrame.height;
+  //     updateGrid(lastCells, lastPadding);
+  //   }
+  // }, 500); // Check every 500ms
+  figma.on('documentchange', (event) => {
+    if (selectedFrame && !isNewFrameSelected) {
+      if (!figma.getNodeById(selectedFrame.id)) {
+        // The selected frame has been removed
+        console.log('Selected frame has been removed');
+        emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected: false });
+        figma.notify('The selected frame has been removed. The plugin will now close.');
+        figma.closePlugin();
+        return;
+      }
 
+      const currentWidth = selectedFrame.width;
+      const currentHeight = selectedFrame.height;
+      if (currentWidth !== lastWidth || currentHeight !== lastHeight) {
+        lastWidth = currentWidth;
+        lastHeight = currentHeight;
+        updateGrid(lastCells, lastPadding);
+      }
+    }
+  });
+}
+
+function checkSelectionWithoutSideEffects(): boolean {
+  if (!figma.currentPage.selection.length) {
+    return false;
+  }
+
+  let frame = figma.currentPage.selection[0];
+  return frame.type === 'FRAME';
 }
 
 function checkSelection(): boolean {
   if (!figma.currentPage.selection.length) {
-    figma.notify('Please select a frame');
+    console.log('No selection')
     selectedFrame = null;
     selectedFrameId = null;
     isNewFrameSelected = false;
