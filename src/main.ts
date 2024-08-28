@@ -13,6 +13,7 @@ let lastPadding: number = 0;
 let autoPopulate: boolean = false;
 let selectedFrameId: string | null = null;
 let isNewFrameSelected: boolean = false;
+let isGridCreated: boolean = false;
 
 export default function () {
   showUI({
@@ -32,7 +33,7 @@ export default function () {
     // checkSelection()
 
   on<GridHandler>('UPDATE_GRID', function({ cellCount, padding }) {
-    if (checkSelection()) {
+    if (isGridCreated && checkSelection()) {
       
       updateGrid(cellCount, padding)
       lastCells = cellCount;
@@ -54,6 +55,7 @@ export default function () {
       updateGrid(cellCount, padding)
       lastCells = cellCount;
       lastPadding = padding;
+      isGridCreated = true;
     }
   })
   figma.on('selectionchange', () => {
@@ -67,9 +69,9 @@ export default function () {
       figma.closePlugin();
     }
   })
-  
+
   figma.on('documentchange', (event) => {
-    if (selectedFrame && !isNewFrameSelected) {
+    if (isGridCreated && selectedFrame && !isNewFrameSelected) {
       if (!figma.getNodeById(selectedFrame.id)) {
         // The selected frame has been removed
         console.log('Selected frame has been removed');
