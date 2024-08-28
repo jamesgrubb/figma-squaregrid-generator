@@ -75,8 +75,8 @@ function checkSelection(): boolean {
 
 function updateGrid(cells: number, padding: number) {
   console.log('autoPopulate', autoPopulate)
-  if (!selectedFrame) {
-    figma.notify('Please select a frame');
+  if (!selectedFrame || !figma.getNodeById(selectedFrame.id)) {
+    console.log('No selected frame');
     return;
   }
 
@@ -88,7 +88,13 @@ function updateGrid(cells: number, padding: number) {
 
   const frameWidth = selectedFrame.width;
   const frameHeight = selectedFrame.height;
-  
+
+    // Check if frameWidth or frameHeight are valid numbers
+    if (isNaN(frameWidth) || isNaN(frameHeight) || frameWidth <= 0 || frameHeight <= 0) {
+      console.log('Invalid frame dimensions:', frameWidth, frameHeight);
+      return;
+    }
+
   const paddingValue = padding / 100 // Convert percentage to decimal
   const availableWidth = frameWidth * (1 - paddingValue)
   const availableHeight = frameHeight * (1 - paddingValue)
@@ -102,6 +108,12 @@ function updateGrid(cells: number, padding: number) {
   const gridWidth = cell_size * ncols;
   const gridHeight = cell_size * nrows;
 
+    // Check if gridWidth or gridHeight are valid numbers
+    if (isNaN(gridWidth) || isNaN(gridHeight) || gridWidth <= 0 || gridHeight <= 0) {
+      console.log('Invalid grid dimensions:', gridWidth, gridHeight);
+      return;
+    }
+
   // Remove existing grid frame if it exists
   const existingGridFrame = selectedFrame.findChild(n => n.name === 'GridFrame');
   if (existingGridFrame) {
@@ -111,15 +123,32 @@ function updateGrid(cells: number, padding: number) {
   // Create new child frame for grid
   const gridFrame = figma.createFrame();
   gridFrame.name = 'GridFrame';
-  gridFrame.resize(gridWidth, gridHeight);
+
+  // Resize gridFrame to fit grid
+  if(gridWidth > 0 && gridHeight > 0) {
+    try {
+      gridFrame.resize(gridWidth, gridHeight);
+    } catch (error) {
+      console.log('Error resizing gridFrame:', error);
+      return;
+    }
+  }
+
   gridFrame.x = (frameWidth - gridWidth) / 2;
   gridFrame.y = (frameHeight - gridHeight) / 2;
-  selectedFrame.appendChild(gridFrame);
+
+  try { 
+    selectedFrame.appendChild(gridFrame);
+  } catch (error) {
+    console.log('Error appending gridFrame to selectedFrame:', error);
+    return;
+  }
 
   // Create cells with grey and red tones
   const existingCells = gridFrame.findChildren(n => n.type === 'FRAME');
   if (autoPopulate) {
     if (existingCells.length === 0) {
+      try {
   for (let i = 0; i < nrows; i++) {
     for (let j = 0; j < ncols; j++) {
       const cell = figma.createFrame();
@@ -130,11 +159,14 @@ function updateGrid(cells: number, padding: number) {
       gridFrame.appendChild(cell);
     }
   }
-} 
+  } catch (error) {
+    console.log('Error populating grid:', error);
+    return;
+  }
   } else{
     existingCells.forEach(cell => { cell.remove()})
   }
-
+  }
   let LayoutGrids: LayoutGrid[] = [
     {
       pattern: 'GRID',
