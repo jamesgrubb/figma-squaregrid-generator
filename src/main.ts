@@ -1,9 +1,9 @@
 /// <reference types="@figma/plugin-typings" />
 
 
-import { showUI, on } from '@create-figma-plugin/utilities'
+import { showUI, on , emit} from '@create-figma-plugin/utilities'
 
-import { GridHandler } from './types'
+import { GridHandler, FrameSelectionHandler } from './types'
 
 let selectedFrame: FrameNode | null = null;
 let lastWidth: number = 0;
@@ -12,17 +12,26 @@ let lastCells: number = 0;
 let lastPadding: number = 0;
 
 export default function () {
+  showUI({
+    height: 240,
+    width: 240
+  })
+  
+  figma.on('selectionchange', () => {
+    const isFrameSelected = checkSelection()
+    emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected });})
   checkSelection()
 
   on<GridHandler>('UPDATE_GRID', function({ cellCount, padding }) {
     if (checkSelection()) {
+      
       updateGrid(cellCount, padding)
       lastCells = cellCount;
       lastPadding = padding;
     }
   })
   
-  figma.on('selectionchange', checkSelection)
+  // figma.on('selectionchange', checkSelection)
 
   // Set up an interval to check for size changes
   setInterval(() => {
@@ -33,16 +42,13 @@ export default function () {
     }
   }, 500); // Check every 500ms
 
-  showUI({
-    height: 240,
-    width: 240
-  })
+ 
 }
 
 function checkSelection(): boolean {
   if (!figma.currentPage.selection.length) {
     figma.notify('Please select a frame');
-    selectedFrame = null;
+    selectedFrame = null;    
     return false;
   }
 
@@ -50,7 +56,7 @@ function checkSelection(): boolean {
 
   if (frame.type !== 'FRAME') {
     figma.notify('Please select a frame, not another type of element');
-    selectedFrame = null;
+    selectedFrame = null;    
     return false;
   }
 
@@ -125,7 +131,7 @@ function updateGrid(cells: number, padding: number) {
 
   gridFrame.layoutGrids = LayoutGrids;
 
-  figma.notify('Grid updated');
+  
 }
 
 function generateGreyRedColor(): { r: number, g: number, b: number } {

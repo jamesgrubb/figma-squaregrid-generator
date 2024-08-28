@@ -9,7 +9,8 @@ import {
   VerticalSpace,
   render
 } from '@create-figma-plugin/ui'
-import { emit } from '@create-figma-plugin/utilities'
+import { emit, on } from '@create-figma-plugin/utilities'
+import { FrameSelectionHandler } from './types'
 
 function Plugin() {
   const [cellCount, setCellCount] = useState(4)
@@ -29,14 +30,17 @@ function Plugin() {
 
   const [isEnabled, setIsEnabled] = useState(false);
   const [autoPopulate, setAutoPopulate] = useState(false);
-
+console.log(isEnabled)
   useEffect(() => {
-    window.onmessage = (event) => {
-      const message = event.data.pluginMessage;
-      if (message.type === 'SELECTION_CHANGED') {
-        setIsEnabled(message.isValid);
-      }
-    };
+    // window.onmessage = (event) => {
+    //   const message = event.data.pluginMessage;
+    //   if (message.type === 'SELECTION_CHANGED') {
+    //     setIsEnabled(message.isValid);
+    //   }
+    // };
+    on<FrameSelectionHandler>('FRAME_SELECTED', (event) => {
+      setIsEnabled(event.isFrameSelected);
+    });
   }, []);
   const handleAutoPopulateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const target = event.target as HTMLInputElement;
@@ -49,6 +53,7 @@ function Plugin() {
     <Container space="medium">
       <VerticalSpace space="large" />
       <Text>Number of cells: {cellCount}</Text>
+      <VerticalSpace space="large" />
       <RangeSlider
         maximum={100}
         minimum={1}
@@ -57,6 +62,7 @@ function Plugin() {
       />
       <VerticalSpace space="medium" />
       <Text>Padding: {padding}%</Text>
+      <VerticalSpace space="large" />
       <RangeSlider
         maximum={50}
         minimum={0}
@@ -70,6 +76,8 @@ function Plugin() {
     </Toggle>
        
       </div>
+      <VerticalSpace space="large" />
+      <Text>Frame selected: {isEnabled ? 'Yes' : 'No'}</Text>
     </Container>
   )
 }

@@ -9,3 +9,8 @@ export interface AutoPopulateHandler {
   name: 'AUTO_POPULATE'
   handler: (options: { autoPopulate: boolean }) => void
 }
+
+export interface FrameSelectionHandler {
+  name: 'FRAME_SELECTED'
+  handler: (options: { isFrameSelected: boolean }) => void
+}
