@@ -17,7 +17,7 @@ let isGridCreated: boolean = false;
 
 export default function () {
   showUI({
-    height: 240,
+    height: 320,
     width: 240
   })
   
@@ -250,10 +250,10 @@ function generateGreyRedColor(): { r: number, g: number, b: number } {
 
   if (isGrey) {
     const value = Math.random() * 0.8 + 0.1; // Grey value between 0.1 and 0.9
-    return { r: value, g: value, b: value };
+    return { r: 0.1, g: 0, b: value, };
   } else {
     const value = Math.random() * 0.6 + 0.4; // Red value between 0.4 and 1.0
-    return { r: value, g: 0, b: 0 };
+    return { r: 0.5, g: 0, b: value,  };
   }
 }
 

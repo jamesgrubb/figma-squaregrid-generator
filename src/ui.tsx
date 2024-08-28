@@ -1,6 +1,8 @@
 import { h } from 'preact'
 import { useState, useEffect } from 'preact/hooks'
+import '!./output.css'
 import { 
+  Stack,
   Toggle,
   Button,
   Container,
@@ -9,7 +11,8 @@ import {
   VerticalSpace,
   render,
   Banner,
-  IconWarning32
+  IconWarning32,
+  TextboxNumeric
 } from '@create-figma-plugin/ui'
 import { emit, on } from '@create-figma-plugin/utilities'
 import { FrameSelectionHandler, AutoPopulateHandler } from './types'
@@ -58,36 +61,51 @@ console.log(isEnabled)
 
   return (
     <Container space="medium">
+      
       <VerticalSpace space="large" />
-      <Text>Number of cells: {cellCount}</Text>
-      <VerticalSpace space="large" />
-      <RangeSlider
-        maximum={100}
+      <Text>Number of cells</Text>
+      <VerticalSpace space="small" />
+      <TextboxNumeric
+        variant='border'
+        maximum={300}
         minimum={1}
         onValueInput={handleCellCountChange}
         value={cellCount.toString()}
       />
-      <VerticalSpace space="medium" />
-      <Text>Padding: {padding}%</Text>
-      <VerticalSpace space="large" />
+      <VerticalSpace space="small" />
       <RangeSlider
-        maximum={50}
+        maximum={300}
+        minimum={1}
+        onValueInput={handleCellCountChange}
+        value={cellCount.toString()}
+      />
+      
+      
+      <VerticalSpace space="medium" />
+      <Text>Padding</Text>
+      <VerticalSpace space="small" />
+      <TextboxNumeric 
+        variant='border'
+        maximum={100}
+        minimum={0}
+        suffix="%"
+        onValueInput={handlePaddingChange}
+        value={padding.toString()} />      
+      <VerticalSpace space="small" />
+      <RangeSlider
+        maximum={100}
         minimum={0}
         onValueInput={handlePaddingChange}
         value={padding.toString()}
       />
       <VerticalSpace space="large" />
-      <div>
+      
       <Toggle onChange={handleAutoPopulateChange} value={autoPopulate}>
-      <Text>Auto-populate new frames</Text>
+      <Text>Auto-Fill</Text>
     </Toggle>
-       
-      </div>
-      <VerticalSpace space="large" />
-      <Text>Frame selected: {isEnabled ? 'Yes' : 'No'}</Text>
-      <VerticalSpace space="large" />
+      <VerticalSpace space="small" />
       {!isEnabled && <Banner icon={<IconWarning32 />} variant="warning">      
-      Please select or create a frame to create a grid
+      Please select or create to begin
     </Banner>}
       <VerticalSpace space="large" />
       {isEnabled && <Button fullWidth onClick={handleCreateGrid}>Create Grid</Button>}
