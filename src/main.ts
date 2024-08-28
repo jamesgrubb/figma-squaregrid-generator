@@ -36,6 +36,9 @@ export default function () {
   on<AutoPopulateHandler>('AUTO_POPULATE', function({ autoPopulate: newAutoPopulate }) {
    
     autoPopulate = newAutoPopulate;
+    if(selectedFrame) {
+      updateGrid(lastCells, lastPadding);
+    }
   })
   
   // Set up an interval to check for size changes
@@ -114,7 +117,9 @@ function updateGrid(cells: number, padding: number) {
   selectedFrame.appendChild(gridFrame);
 
   // Create cells with grey and red tones
+  const existingCells = gridFrame.findChildren(n => n.type === 'FRAME');
   if (autoPopulate) {
+    if (existingCells.length === 0) {
   for (let i = 0; i < nrows; i++) {
     for (let j = 0; j < ncols; j++) {
       const cell = figma.createFrame();
@@ -125,7 +130,10 @@ function updateGrid(cells: number, padding: number) {
       gridFrame.appendChild(cell);
     }
   }
-}
+} 
+  } else{
+    existingCells.forEach(cell => { cell.remove()})
+  }
 
   let LayoutGrids: LayoutGrid[] = [
     {
