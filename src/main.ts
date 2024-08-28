@@ -17,7 +17,7 @@ let isGridCreated: boolean = false;
 
 export default function () {
   showUI({
-    height: 320,
+    height: 280,
     width: 240
   })
   

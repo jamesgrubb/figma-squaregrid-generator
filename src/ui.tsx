@@ -60,6 +60,7 @@ console.log(isEnabled)
   }
 
   return (
+    <div className="relative h-full text-balance">
     <Container space="medium">
       
       <VerticalSpace space="large" />
@@ -104,12 +105,13 @@ console.log(isEnabled)
       <Text>Auto-Fill</Text>
     </Toggle>
       <VerticalSpace space="small" />
-      {!isEnabled && <Banner icon={<IconWarning32 />} variant="warning">      
-      Please select or create to begin
-    </Banner>}
+      {!isEnabled && <div className="absolute bottom-0 left-0 right-0"><Banner icon={<IconWarning32 />} variant="warning">      
+      Please select or create a frame to begin
+    </Banner></div>}
       <VerticalSpace space="large" />
       {isEnabled && <Button fullWidth onClick={handleCreateGrid}>Create Grid</Button>}
     </Container>
+    </div>
   )
 }
 
