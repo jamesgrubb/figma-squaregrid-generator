@@ -90,7 +90,7 @@ console.log(isEnabled)
       Please select or create a frame to create a grid
     </Banner>}
       <VerticalSpace space="large" />
-      {isEnabled && <Button onClick={handleCreateGrid}>Create Grid</Button>}
+      {isEnabled && <Button fullWidth onClick={handleCreateGrid}>Create Grid</Button>}
     </Container>
   )
 }
