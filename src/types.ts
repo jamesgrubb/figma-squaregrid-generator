@@ -14,3 +14,8 @@ export interface FrameSelectionHandler {
   name: 'FRAME_SELECTED'
   handler: (options: { isFrameSelected: boolean }) => void
 }
+
+export interface CreateGridHandler {
+  name: 'CREATE_GRID'
+  handler: (options: { cellCount: number, padding: number }) => void
+}

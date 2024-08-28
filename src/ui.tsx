@@ -50,6 +50,10 @@ console.log(isEnabled)
     emit<AutoPopulateHandler>('AUTO_POPULATE', { autoPopulate: newValue });
   };
 
+  function handleCreateGrid() {
+    emit('CREATE_GRID', { cellCount, padding })
+  }
+
   return (
     <Container space="medium">
       <VerticalSpace space="large" />
@@ -79,6 +83,8 @@ console.log(isEnabled)
       </div>
       <VerticalSpace space="large" />
       <Text>Frame selected: {isEnabled ? 'Yes' : 'No'}</Text>
+      <VerticalSpace space="large" />
+      {isEnabled && <Button onClick={handleCreateGrid}>Create Grid</Button>}
     </Container>
   )
 }

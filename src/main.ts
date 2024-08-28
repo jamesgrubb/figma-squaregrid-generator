@@ -3,7 +3,7 @@
 
 import { showUI, on , emit} from '@create-figma-plugin/utilities'
 
-import { GridHandler, FrameSelectionHandler, AutoPopulateHandler } from './types'
+import { GridHandler, FrameSelectionHandler, AutoPopulateHandler, CreateGridHandler } from './types'
 
 let selectedFrame: FrameNode | null = null;
 let lastWidth: number = 0;
@@ -41,6 +41,13 @@ export default function () {
     }
   })
   
+  on<CreateGridHandler>('CREATE_GRID', function({ cellCount, padding }) {
+    if (checkSelection()) {
+      updateGrid(cellCount, padding)
+      lastCells = cellCount;
+      lastPadding = padding;
+    }
+  })
   // Set up an interval to check for size changes
   setInterval(() => {
     if (selectedFrame && (selectedFrame.width !== lastWidth || selectedFrame.height !== lastHeight)) {
