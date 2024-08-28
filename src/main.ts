@@ -56,14 +56,18 @@ export default function () {
       lastPadding = padding;
     }
   })
-  // Set up an interval to check for size changes
-  // setInterval(() => {
-  //   if (selectedFrame && !isNewFrameSelected && (selectedFrame.width !== lastWidth || selectedFrame.height !== lastHeight)) {
-  //     lastWidth = selectedFrame.width;
-  //     lastHeight = selectedFrame.height;
-  //     updateGrid(lastCells, lastPadding);
-  //   }
-  // }, 500); // Check every 500ms
+  figma.on('selectionchange', () => {
+    const isFrameSelected = checkSelectionWithoutSideEffects()
+    emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected });
+    
+    if (!isFrameSelected && selectedFrame !== null) {
+      // Frame was deselected
+      console.log('Frame deselected. Closing plugin.');
+      figma.notify('Frame deselected. The plugin will now close.');
+      figma.closePlugin();
+    }
+  })
+  
   figma.on('documentchange', (event) => {
     if (selectedFrame && !isNewFrameSelected) {
       if (!figma.getNodeById(selectedFrame.id)) {
