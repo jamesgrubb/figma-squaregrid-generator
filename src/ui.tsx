@@ -10,7 +10,7 @@ import {
   render
 } from '@create-figma-plugin/ui'
 import { emit, on } from '@create-figma-plugin/utilities'
-import { FrameSelectionHandler } from './types'
+import { FrameSelectionHandler, AutoPopulateHandler } from './types'
 
 function Plugin() {
   const [cellCount, setCellCount] = useState(4)
@@ -45,8 +45,9 @@ console.log(isEnabled)
   const handleAutoPopulateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const target = event.target as HTMLInputElement;
     const newValue = target?.checked;
+    console.log(newValue)
     setAutoPopulate(newValue);
-    parent.postMessage({ pluginMessage: { type: 'SET_AUTO_POPULATE', value: newValue } }, '*');
+    emit<AutoPopulateHandler>('AUTO_POPULATE', { autoPopulate: newValue });
   };
 
   return (

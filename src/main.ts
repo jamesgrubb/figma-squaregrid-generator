@@ -3,13 +3,14 @@
 
 import { showUI, on , emit} from '@create-figma-plugin/utilities'
 
-import { GridHandler, FrameSelectionHandler } from './types'
+import { GridHandler, FrameSelectionHandler, AutoPopulateHandler } from './types'
 
 let selectedFrame: FrameNode | null = null;
 let lastWidth: number = 0;
 let lastHeight: number = 0;
 let lastCells: number = 0;
 let lastPadding: number = 0;
+let autoPopulate: boolean = false;
 
 export default function () {
   showUI({
@@ -32,7 +33,11 @@ export default function () {
   })
   
   // figma.on('selectionchange', checkSelection)
-
+  on<AutoPopulateHandler>('AUTO_POPULATE', function({ autoPopulate: newAutoPopulate }) {
+   
+    autoPopulate = newAutoPopulate;
+  })
+  
   // Set up an interval to check for size changes
   setInterval(() => {
     if (selectedFrame && (selectedFrame.width !== lastWidth || selectedFrame.height !== lastHeight)) {
@@ -42,7 +47,6 @@ export default function () {
     }
   }, 500); // Check every 500ms
 
- 
 }
 
 function checkSelection(): boolean {
@@ -67,6 +71,7 @@ function checkSelection(): boolean {
 }
 
 function updateGrid(cells: number, padding: number) {
+  console.log('autoPopulate', autoPopulate)
   if (!selectedFrame) {
     figma.notify('Please select a frame');
     return;
@@ -109,6 +114,7 @@ function updateGrid(cells: number, padding: number) {
   selectedFrame.appendChild(gridFrame);
 
   // Create cells with grey and red tones
+  if (autoPopulate) {
   for (let i = 0; i < nrows; i++) {
     for (let j = 0; j < ncols; j++) {
       const cell = figma.createFrame();
@@ -119,6 +125,7 @@ function updateGrid(cells: number, padding: number) {
       gridFrame.appendChild(cell);
     }
   }
+}
 
   let LayoutGrids: LayoutGrid[] = [
     {
@@ -132,7 +139,6 @@ function updateGrid(cells: number, padding: number) {
   gridFrame.layoutGrids = LayoutGrids;
 
   
-}
 
 function generateGreyRedColor(): { r: number, g: number, b: number } {
   const isGrey = Math.random() < 0.7; // 70% chance of grey, 30% chance of red
@@ -176,4 +182,5 @@ function fitSquaresInRectangle(x: number, y: number, n: number) {
           cell_size: cell_size2
       };
   }
-}
+  }
+  } 
