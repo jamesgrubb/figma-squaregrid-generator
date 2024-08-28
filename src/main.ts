@@ -20,6 +20,9 @@ export default function () {
     width: 240
   })
   
+  const isFrameSelected = checkSelection()
+  emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected });
+
   figma.on('selectionchange', () => {
     const isFrameSelected = checkSelection()
     emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected });})

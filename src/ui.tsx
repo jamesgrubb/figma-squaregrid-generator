@@ -7,7 +7,9 @@ import {
   RangeSlider,
   Text,
   VerticalSpace,
-  render
+  render,
+  Banner,
+  IconWarning32
 } from '@create-figma-plugin/ui'
 import { emit, on } from '@create-figma-plugin/utilities'
 import { FrameSelectionHandler, AutoPopulateHandler } from './types'
@@ -83,6 +85,10 @@ console.log(isEnabled)
       </div>
       <VerticalSpace space="large" />
       <Text>Frame selected: {isEnabled ? 'Yes' : 'No'}</Text>
+      <VerticalSpace space="large" />
+      {!isEnabled && <Banner icon={<IconWarning32 />} variant="warning">      
+      Please select or create a frame to create a grid
+    </Banner>}
       <VerticalSpace space="large" />
       {isEnabled && <Button onClick={handleCreateGrid}>Create Grid</Button>}
     </Container>
