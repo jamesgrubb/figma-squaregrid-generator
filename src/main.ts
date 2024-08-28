@@ -11,6 +11,8 @@ let lastHeight: number = 0;
 let lastCells: number = 0;
 let lastPadding: number = 0;
 let autoPopulate: boolean = false;
+let selectedFrameId: string | null = null;
+let isNewFrameSelected: boolean = false;
 
 export default function () {
   showUI({
@@ -36,13 +38,14 @@ export default function () {
   on<AutoPopulateHandler>('AUTO_POPULATE', function({ autoPopulate: newAutoPopulate }) {
    
     autoPopulate = newAutoPopulate;
-    if(selectedFrame) {
+    if(selectedFrame && !isNewFrameSelected) {
       updateGrid(lastCells, lastPadding);
     }
   })
   
   on<CreateGridHandler>('CREATE_GRID', function({ cellCount, padding }) {
     if (checkSelection()) {
+      isNewFrameSelected = false;
       updateGrid(cellCount, padding)
       lastCells = cellCount;
       lastPadding = padding;
@@ -62,7 +65,9 @@ export default function () {
 function checkSelection(): boolean {
   if (!figma.currentPage.selection.length) {
     figma.notify('Please select a frame');
-    selectedFrame = null;    
+    selectedFrame = null;
+    selectedFrameId = null;
+    isNewFrameSelected = false;
     return false;
   }
 
@@ -70,8 +75,17 @@ function checkSelection(): boolean {
 
   if (frame.type !== 'FRAME') {
     figma.notify('Please select a frame, not another type of element');
-    selectedFrame = null;    
+    selectedFrame = null;
+    selectedFrameId = null;
+    isNewFrameSelected = false;
     return false;
+  }
+
+  if (frame.id !== selectedFrameId) {
+    isNewFrameSelected = true;
+    selectedFrameId = frame.id;
+  } else {
+    isNewFrameSelected = false;
   }
 
   selectedFrame = frame;
@@ -91,6 +105,11 @@ function updateGrid(cells: number, padding: number) {
   if (selectedFrame.name === 'GridFrame' && selectedFrame.parent && selectedFrame.parent.type === 'FRAME') {
     selectedFrame = selectedFrame.parent as FrameNode;
     figma.currentPage.selection = [selectedFrame];
+  }
+
+  if (isNewFrameSelected) {
+    console.log('New frame selected. Use "Create Grid" to generate a grid.');
+    return;
   }
 
   const frameWidth = selectedFrame.width;
