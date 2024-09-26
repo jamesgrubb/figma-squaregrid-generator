@@ -21,6 +21,8 @@ function Plugin() {
   const [cellCount, setCellCount] = useState<number>(0)
   const [padding, setPadding] = useState<number>(0)
   const [steps, setSteps] = useState<number[]>([])
+  const [isEnabled, setIsEnabled] = useState<boolean>(false);
+  const [autoPopulate, setAutoPopulate] = useState<boolean>(false);
 
   useEffect(() => {
     emit('UPDATE_GRID', { cellCount, padding })
@@ -34,16 +36,9 @@ function Plugin() {
     setPadding(parseInt(value, 10))
   }
 
-  const [isEnabled, setIsEnabled] = useState(false);
-  const [autoPopulate, setAutoPopulate] = useState(false);
+  
 console.log(isEnabled)
-  useEffect(() => {
-    // window.onmessage = (event) => {
-    //   const message = event.data.pluginMessage;
-    //   if (message.type === 'SELECTION_CHANGED') {
-    //     setIsEnabled(message.isValid);
-    //   }
-    // };
+  useEffect(() => {   
     on<FrameSelectionHandler>('FRAME_SELECTED', (event) => {
       setIsEnabled(event.isFrameSelected);     
     });
@@ -90,6 +85,17 @@ console.log(isEnabled)
   const currentStepIndex = steps.indexOf(cellCount);
   console.log('currentStepIndex', currentStepIndex)
 
+  const findClosestStep = (value: number): number => {
+    if (steps.length === 0) return 0; // Return default if no steps
+
+    return steps.reduce((prev, curr) => {
+      return Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev;
+    });
+  };
+
+  const minStep = steps.length > 0 ? Math.min(...steps) : 0; // Fallback to 0 if no steps
+  const maxStep = steps.length > 0 ? Math.max(...steps) : 300; // Fallback to 300 if no steps
+
   return (
     <div className="relative h-full text-balance">
     <Container space="medium">
@@ -98,18 +104,22 @@ console.log(isEnabled)
       <Text>Number of cells</Text>
       <VerticalSpace space="small" />
       <TextboxNumeric
-        variant='border'
-        maximum={300}
-        minimum={1}
-        onValueInput={handleCellCountChange}
-        value={cellCount.toString()}
-      />
+          variant='border'
+          maximum={300}
+          minimum={1}
+          onValueInput={handleCellCountChange}
+          value={cellCount.toString()}
+        />
       <VerticalSpace space="small" />
       <RangeSlider
-        maximum={300}
-        minimum={1}
-        onValueInput={handleCellCountChange}
+        maximum={maxStep} // Use the calculated maximum value from the steps
+        minimum={minStep} // Use the calculated minimum value from the steps
         value={cellCount.toString()}
+        onValueInput={(value) => {
+          const numericValue = parseInt(value, 10);
+          const closestStep = findClosestStep(numericValue);
+          setCellCount(closestStep);
+        }}
       />
       
       
