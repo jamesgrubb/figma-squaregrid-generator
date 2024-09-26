@@ -164,6 +164,9 @@ function updateGrid(cells: number, padding: number) {
   const availableWidth = frameWidth * (1 - paddingValue)
   const availableHeight = frameHeight * (1 - paddingValue)
   
+  const possibleCellCounts = getPossibleCellCounts(availableWidth, availableHeight, 100);
+  console.log('Possible cell counts:', possibleCellCounts);
+
   var grid = fitSquaresInRectangle(availableWidth, availableHeight, cells);
   var nrows = grid.nrows;
   var ncols = grid.ncols;
@@ -257,7 +260,22 @@ function generateGreyRedColor(): { r: number, g: number, b: number } {
   }
 }
 
+function getPossibleCellCounts(width: number, height: number, maxCells: number): number[] {
+  const possibleCounts: number[] = [];
+  for (let i = 1; i <= maxCells; i++) {
+    const grid = fitSquaresInRectangle(width, height, i);
+    if (grid.nrows * grid.ncols === i) {
+      possibleCounts.push(i);
+    }
+  }
+  return possibleCounts;
+}
+
 function fitSquaresInRectangle(x: number, y: number, n: number) {
+  // Ensure x and y are even
+  if (x % 2 !== 0) x--;
+  if (y % 2 !== 0) y--;
+
   var ratio = x / y;
   var ncols_float = Math.sqrt(n * ratio);
   var nrows_float = n / ncols_float;
@@ -287,5 +305,6 @@ function fitSquaresInRectangle(x: number, y: number, n: number) {
           cell_size: cell_size2
       };
   }
-  }
+}
+
   } 
