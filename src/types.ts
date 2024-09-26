@@ -12,7 +12,12 @@ export interface AutoPopulateHandler {
 
 export interface FrameSelectionHandler {
   name: 'FRAME_SELECTED'
-  handler: (options: { isFrameSelected: boolean }) => void
+  handler: (options: { isFrameSelected: boolean} ) => void
+}
+
+export interface PossibleCellCountsHandler {
+  name: 'POSSIBLE_CELL_COUNTS'
+  handler: (options: { possibleCellCounts: number[] }) => void
 }
 
 export interface CreateGridHandler {

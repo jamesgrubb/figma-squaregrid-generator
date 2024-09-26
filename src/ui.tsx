@@ -15,11 +15,12 @@ import {
   TextboxNumeric
 } from '@create-figma-plugin/ui'
 import { emit, on } from '@create-figma-plugin/utilities'
-import { FrameSelectionHandler, AutoPopulateHandler } from './types'
+import { FrameSelectionHandler, AutoPopulateHandler, PossibleCellCountsHandler } from './types'
 
 function Plugin() {
-  const [cellCount, setCellCount] = useState(4)
-  const [padding, setPadding] = useState(0)
+  const [cellCount, setCellCount] = useState<number>(0)
+  const [padding, setPadding] = useState<number>(0)
+  const [steps, setSteps] = useState<number[]>([])
 
   useEffect(() => {
     emit('UPDATE_GRID', { cellCount, padding })
@@ -44,9 +45,37 @@ console.log(isEnabled)
     //   }
     // };
     on<FrameSelectionHandler>('FRAME_SELECTED', (event) => {
-      setIsEnabled(event.isFrameSelected);
+      setIsEnabled(event.isFrameSelected);     
     });
+   
   }, []);
+
+  useEffect(() => {
+    const handler = (event: { possibleCellCounts: number[] } | undefined) => {
+      if (event?.possibleCellCounts && Array.isArray(event.possibleCellCounts) && event.possibleCellCounts.length > 0) {
+          console.log('Received possible cell counts:', event.possibleCellCounts);
+          setSteps(event.possibleCellCounts);
+          setCellCount(event.possibleCellCounts[0]); // Set the initial selected value to the first step
+      }
+  };
+
+   
+
+    on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', handler);
+
+    // Clean up the event listener on component unmount
+    return () => {
+      // You might need to use a method to remove the listener if applicable
+    };
+    // on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', (event) => {
+    //   setSteps(event.possibleCellCounts);
+    // });
+  }, []);
+
+  useEffect(() => {
+    console.log(steps)
+  }, [steps])
+
   const handleAutoPopulateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const target = event.target as HTMLInputElement;
     const newValue = target?.checked;
