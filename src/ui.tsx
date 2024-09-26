@@ -87,6 +87,8 @@ console.log(isEnabled)
   function handleCreateGrid() {
     emit('CREATE_GRID', { cellCount, padding })
   }
+  const currentStepIndex = steps.indexOf(cellCount);
+  console.log('currentStepIndex', currentStepIndex)
 
   return (
     <div className="relative h-full text-balance">
