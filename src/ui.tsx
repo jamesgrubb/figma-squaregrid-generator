@@ -29,7 +29,14 @@ function Plugin() {
   }, [cellCount, padding])
 
   const handleCellCountChange = (value: string) => {
-    setCellCount(parseInt(value, 10))
+    const numberValue = parseInt(value, 10);
+  
+  // Find the nearest value in steps
+  const nearestValue = steps.reduce((prev, curr) => {
+    return (Math.abs(curr - numberValue) < Math.abs(prev - numberValue) ? curr : prev);
+  }, steps[0]);
+
+  setCellCount(nearestValue);
   }
 
   const handlePaddingChange = (value: string) => {
