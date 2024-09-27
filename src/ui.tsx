@@ -12,7 +12,8 @@ import {
   render,
   Banner,
   IconWarning32,
-  TextboxNumeric
+  TextboxNumeric,
+  Muted
 } from '@create-figma-plugin/ui'
 import { emit, on } from '@create-figma-plugin/utilities'
 import { FrameSelectionHandler, AutoPopulateHandler, PossibleCellCountsHandler } from './types'
@@ -23,6 +24,7 @@ function Plugin() {
   const [steps, setSteps] = useState<number[]>([])
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
   const [autoPopulate, setAutoPopulate] = useState<boolean>(false);
+  const [isGridCreated, setIsGridCreated] = useState(true);
 
   useEffect(() => {
     emit('UPDATE_GRID', { cellCount, padding })
@@ -88,6 +90,7 @@ console.log(isEnabled)
 
   function handleCreateGrid() {
     emit('CREATE_GRID', { cellCount, padding })
+    setIsGridCreated(false);
   }
   const currentStepIndex = steps.indexOf(cellCount);
   console.log('currentStepIndex', currentStepIndex)
@@ -105,7 +108,7 @@ console.log(isEnabled)
 
   return (
     <div className="relative h-full text-balance">
-    <Container space="medium">
+    {!isGridCreated && <Container space="medium">
       
       <VerticalSpace space="large" />
       <Text>Number of cells</Text>
@@ -116,6 +119,7 @@ console.log(isEnabled)
           minimum={1}
           onValueInput={handleCellCountChange}
           value={cellCount.toString()}
+          disabled={isGridCreated} // Disable based on state
         />
       <VerticalSpace space="small" />
       <RangeSlider
@@ -127,6 +131,7 @@ console.log(isEnabled)
           const closestStep = findClosestStep(numericValue);
           setCellCount(closestStep);
         }}
+        disabled={isGridCreated} // Disable based on state
       />
       
       
@@ -139,25 +144,33 @@ console.log(isEnabled)
         minimum={0}
         suffix="%"
         onValueInput={handlePaddingChange}
-        value={padding.toString()} />      
+        value={padding.toString()} 
+        disabled={isGridCreated} // Disable based on state
+        />      
       <VerticalSpace space="small" />
       <RangeSlider
         maximum={100}
         minimum={0}
         onValueInput={handlePaddingChange}
         value={padding.toString()}
+        disabled={isGridCreated} // Disable based on state
       />
       <VerticalSpace space="large" />
       
       <Toggle onChange={handleAutoPopulateChange} value={autoPopulate}>
       <Text>Auto-Fill</Text>
     </Toggle>
-      <VerticalSpace space="small" />
+      
+      
+    </Container>}
+    <Container space="medium">
+    <VerticalSpace space="small" />
+    <Text><Muted>This tool lets you create a customizable grid by setting the number of cells and padding. Adjust the values using the sliders or type directly, with inputs snapping to valid options. Start by selecting or creating a frame, then click "Create Grid" to unlock the settings. You can also enable the auto-fill option for easier grid population.</Muted></Text>
       {!isEnabled && <div className="absolute bottom-0 left-0 right-0"><Banner icon={<IconWarning32 />} variant="warning">      
       Please select or create a frame to begin
     </Banner></div>}
-      <VerticalSpace space="large" />
-      {isEnabled && <Button fullWidth onClick={handleCreateGrid}>Create Grid</Button>}
+    <VerticalSpace space="large" />
+    {isEnabled && <Button fullWidth onClick={handleCreateGrid}>Create Grid</Button>}
     </Container>
     </div>
   )
