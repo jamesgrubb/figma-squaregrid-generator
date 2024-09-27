@@ -164,16 +164,19 @@ console.log(isEnabled)
       
       
     </Container>}
-    <Container space="medium">
-    <VerticalSpace space="small" />
-    <Text><Muted>This tool lets you create a customizable grid by setting the number of cells and padding. Adjust the values using the sliders or type directly, with inputs snapping to valid options. Start by selecting or creating a frame, then click "Create Grid" to unlock the settings. You can also enable the auto-fill option for easier grid population.</Muted></Text>
-      {!isEnabled && <div className="absolute bottom-0 left-0 right-0"><Banner icon={<IconWarning32 />} variant="warning">      
+     
+      
+    {isGridCreated && <Container className="absolute inset-0 flex flex-col justify-between p-4" space="medium">
+    
+    <Text className="h-min"><Muted>This tool lets you create a customizable grid by setting the number of cells and padding. Adjust the values using the sliders or type directly, with inputs snapping to valid options. Start by selecting or creating a frame, then click "Create Grid" to unlock the settings. You can also enable the auto-fill option for easier grid population.</Muted></Text>
+    <Button className="" disabled={!isEnabled} fullWidth onClick={handleCreateGrid}>Get Started</Button>
+      {!isEnabled && <div className="absolute bottom-0 left-0 right-0 z-10"><Banner icon={<IconWarning32 />} variant="warning">      
       Please select or create a frame to begin
     </Banner></div>}
-    <VerticalSpace space="large" />
-    {isEnabled && <Button fullWidth onClick={handleCreateGrid}>Get Started</Button>}
-    </Container>
+    
+    </Container>}
     </div>
+    
   )
 }
 
