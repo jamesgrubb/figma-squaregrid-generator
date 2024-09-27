@@ -122,6 +122,7 @@ console.log(isEnabled)
           disabled={isGridCreated} // Disable based on state
         />
       <VerticalSpace space="small" />
+      <div>
       <RangeSlider
         maximum={maxStep} // Use the calculated maximum value from the steps
         minimum={minStep} // Use the calculated minimum value from the steps
@@ -133,7 +134,7 @@ console.log(isEnabled)
         }}
         disabled={isGridCreated} // Disable based on state
       />
-      
+      </div>
       
       <VerticalSpace space="medium" />
       <Text>Padding</Text>
@@ -170,7 +171,7 @@ console.log(isEnabled)
       Please select or create a frame to begin
     </Banner></div>}
     <VerticalSpace space="large" />
-    {isEnabled && <Button fullWidth onClick={handleCreateGrid}>Create Grid</Button>}
+    {isEnabled && <Button fullWidth onClick={handleCreateGrid}>Get Started</Button>}
     </Container>
     </div>
   )
