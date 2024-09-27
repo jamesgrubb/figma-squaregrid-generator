@@ -610,6 +610,10 @@ video {
   display: grid;
 }
 
+.h-8 {
+  height: 2rem;
+}
+
 .h-full {
   height: 100%;
 }
@@ -617,10 +621,6 @@ video {
 .h-min {
   height: -moz-min-content;
   height: min-content;
-}
-
-.h-8 {
-  height: 2rem;
 }
 
 .w-8 {
