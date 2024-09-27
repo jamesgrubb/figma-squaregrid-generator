@@ -13,10 +13,11 @@ import {
   Banner,
   IconWarning32,
   TextboxNumeric,
-  Muted
+  Muted, // We'll create this component
 } from '@create-figma-plugin/ui'
+import { ColorPicker } from './components/ColorPicker'
 import { emit, on } from '@create-figma-plugin/utilities'
-import { FrameSelectionHandler, AutoPopulateHandler, PossibleCellCountsHandler } from './types'
+import { FrameSelectionHandler, AutoPopulateHandler, PossibleCellCountsHandler, UpdateColorsHandler } from './types'
 
 function Plugin() {
   const [cellCount, setCellCount] = useState<number>(0)
@@ -25,6 +26,7 @@ function Plugin() {
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
   const [autoPopulate, setAutoPopulate] = useState<boolean>(false);
   const [isGridCreated, setIsGridCreated] = useState(true);
+  const [colors, setColors] = useState<string[]>(['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF'])
 
   useEffect(() => {
     emit('UPDATE_GRID', { cellCount, padding })
@@ -87,6 +89,13 @@ console.log(isEnabled)
     setAutoPopulate(newValue);
     emit<AutoPopulateHandler>('AUTO_POPULATE', { autoPopulate: newValue });
   };
+
+  const handleColorChange = (index: number, color: string) => {
+    const newColors = [...colors]
+    newColors[index] = color
+    setColors(newColors)
+    emit<UpdateColorsHandler>('UPDATE_COLORS', { colors: newColors })
+  }
 
   function handleCreateGrid() {
     emit('CREATE_GRID', { cellCount, padding })
@@ -162,6 +171,18 @@ console.log(isEnabled)
       <Text>Auto-Fill</Text>
     </Toggle>
       
+      <VerticalSpace space="large" />
+      <Text>Fill Colors</Text>
+      <VerticalSpace space="small" />
+      <div className="flex justify-between">
+        {colors.map((color, index) => (
+          <ColorPicker
+            key={index}
+            color={color}
+            onChange={(newColor) => handleColorChange(index, newColor)}
+          />
+        ))}
+      </div>
       
     </Container>}
      

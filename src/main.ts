@@ -1,7 +1,7 @@
 /// <reference types="@figma/plugin-typings" />
 
 import { showUI, on, emit } from '@create-figma-plugin/utilities';
-import { GridHandler, FrameSelectionHandler, AutoPopulateHandler, CreateGridHandler } from './types';
+import { GridHandler, FrameSelectionHandler, AutoPopulateHandler, CreateGridHandler, UpdateColorsHandler } from './types';
 import { EventHandler } from '@create-figma-plugin/utilities';
 
 let selectedFrame: FrameNode | null = null;
@@ -13,7 +13,7 @@ let autoPopulate: boolean = false;
 let selectedFrameId: string | null = null;
 let isNewFrameSelected: boolean = false;
 let isGridCreated: boolean = false;
-
+let selectedColors: string[] = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF']
 export default function () {
   showUI({
     height: 280,
@@ -61,6 +61,13 @@ export default function () {
     emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { possibleCellCounts });
     }
   });
+
+  on<UpdateColorsHandler>('UPDATE_COLORS', function({ colors }) {
+    selectedColors = colors
+    if (selectedFrame && !isNewFrameSelected) {
+      updateGrid(lastCells, lastPadding)
+    }
+  })
 
   figma.on('selectionchange', () => {
     const isFrameSelected = checkSelectionWithoutSideEffects();
@@ -197,12 +204,16 @@ function updateGrid(cells: number, padding: number) {
           cell.resize(cell_size, cell_size);
           cell.x = j * cell_size;
           cell.y = i * cell_size;
-          cell.fills = [{ type: 'SOLID', color: generateGreyRedColor() }];
+          const colorIndex = Math.floor(Math.random() * selectedColors.length);
+          cell.fills = [{ type: 'SOLID', color: hexToRgb(selectedColors[colorIndex]) }];
           gridFrame.appendChild(cell);
         }
       }
     } else {
-      existingCells.forEach(cell => cell.remove());
+      existingCells.forEach(cell => {
+        const colorIndex = Math.floor(Math.random() * selectedColors.length);
+        cell.fills = [{ type: 'SOLID', color: hexToRgb(selectedColors[colorIndex]) }];
+      });
     }
   }
 
@@ -216,6 +227,17 @@ function updateGrid(cells: number, padding: number) {
   ];
 
   gridFrame.layoutGrids = layoutGrids;
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? {
+        r: parseInt(result[1], 16) / 255,
+        g: parseInt(result[2], 16) / 255,
+        b: parseInt(result[3], 16) / 255
+      }
+    : { r: 0, g: 0, b: 0 };
 }
 
 function generateGreyRedColor(): { r: number, g: number, b: number } {

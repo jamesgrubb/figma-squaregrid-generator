@@ -24,3 +24,8 @@ export interface CreateGridHandler {
   name: 'CREATE_GRID'
   handler: (options: { cellCount: number, padding: number }) => void
 }
+
+export interface UpdateColorsHandler extends EventHandler {
+  name: 'UPDATE_COLORS'
+  handler: (data: { colors: string[] }) => void
+}
