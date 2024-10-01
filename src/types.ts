@@ -27,5 +27,5 @@ export interface CreateGridHandler {
 
 export interface UpdateColorsHandler extends EventHandler {
   name: 'UPDATE_COLORS'
-  handler: (data: { colors: string[] }) => void
+  handler: (data: { hexColors: string[], opacityPercent: string[] }) => void
 }

@@ -26,11 +26,14 @@ function Plugin() {
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
   const [autoPopulate, setAutoPopulate] = useState<boolean>(false);
   const [isGridCreated, setIsGridCreated] = useState(true);
-  const [colors, setColors] = useState<string[]>(['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF'])
+  const defaultColors = ['2a5256','cac578','c69a94','57b59c','b1371b'];
+  const [hexColors, setHexColors] = useState<string[]>(defaultColors);
+  const [opacityPercent, setOpacityPercent] = useState<string[]>(['100%','100%','100%','100%','100%']);
 
   useEffect(() => {
     emit('UPDATE_GRID', { cellCount, padding })
-  }, [cellCount, padding])
+    emit('UPDATE_COLORS', { hexColors, opacityPercent })
+  }, [cellCount, padding, hexColors, opacityPercent])
 
   const handleCellCountChange = (value: string) => {
     const numberValue = parseInt(value, 10);
@@ -48,12 +51,11 @@ function Plugin() {
   }
 
   
-console.log(isEnabled)
+  console.log(isEnabled)
   useEffect(() => {   
     on<FrameSelectionHandler>('FRAME_SELECTED', (event) => {
       setIsEnabled(event.isFrameSelected);     
     });
-   
   }, []);
 
   useEffect(() => {
@@ -63,11 +65,16 @@ console.log(isEnabled)
           setSteps(event.possibleCellCounts);
           setCellCount(event.possibleCellCounts[0]); // Set the initial selected value to the first step
       }
-  };
+    }
+    
 
    
 
     on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', handler);
+    on<UpdateColorsHandler>('UPDATE_COLORS', (event) => {
+      setHexColors(event.hexColors);
+      setOpacityPercent(event.opacityPercent);
+    });
 
     // Clean up the event listener on component unmount
     return () => {
@@ -90,13 +97,24 @@ console.log(isEnabled)
     emit<AutoPopulateHandler>('AUTO_POPULATE', { autoPopulate: newValue });
   };
 
-  const handleColorChange = (index: number, color: string) => {
-    const newColors = [...colors]
-    newColors[index] = color
-    setColors(newColors)
-    emit<UpdateColorsHandler>('UPDATE_COLORS', { colors: newColors })
+  function handleHexColorInput(index:number, event: h.JSX.TargetedEvent<HTMLInputElement>) {
+    console.log('index',index,'value',event.currentTarget.value)
+    const newHexColor = [...hexColors]
+    newHexColor[index] = event.currentTarget.value;
+    console.log(newHexColor)
+    setHexColors(newHexColor);
+    emit('UPDATE_COLORS', { hexColors, opacityPercent })
   }
 
+  function handleOpacityInput(index:number, event: h.JSX.TargetedEvent<HTMLInputElement>) {
+    console.log('index',index,'value',event.currentTarget.value)
+    const newOpacity = [...opacityPercent]
+    newOpacity[index] = event.currentTarget.value;
+    console.log(newOpacity)
+    setOpacityPercent(newOpacity);
+    emit('UPDATE_COLORS', { hexColors, opacityPercent })
+  }
+    
   function handleCreateGrid() {
     emit('CREATE_GRID', { cellCount, padding })
     setIsGridCreated(false);
@@ -174,14 +192,10 @@ console.log(isEnabled)
       <VerticalSpace space="large" />
       <Text>Fill Colors</Text>
       <VerticalSpace space="small" />
-      <div className="flex justify-between">
-        {colors.map((color, index) => (
-          <ColorPicker
-            key={index}
-            color={color}
-            onChange={(newColor) => handleColorChange(index, newColor)}
-          />
-        ))}
+      <div className="flex flex-col justify-between">
+      {defaultColors.map((_,index)=>{
+      return <ColorPicker key={index} color={hexColors[index]} opacity={opacityPercent[index]} handleHexColorInput={(event)=>handleHexColorInput(index,event)} handleOpacityInput={(event)=>handleOpacityInput(index,event)} />
+    })}
       </div>
       
     </Container>}
@@ -200,5 +214,6 @@ console.log(isEnabled)
     
   )
 }
+
 
 export default render(Plugin)

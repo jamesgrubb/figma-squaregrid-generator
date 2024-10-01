@@ -13,7 +13,8 @@ let autoPopulate: boolean = false;
 let selectedFrameId: string | null = null;
 let isNewFrameSelected: boolean = false;
 let isGridCreated: boolean = false;
-let selectedColors: string[] = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF']
+let selectedColors: string[] = ['2a5256','cac578','c69a94','57b59c','b1371b'];
+let selectedOpacities: string[] = ['100%','100%','100%','100%','100%'];
 export default function () {
   showUI({
     height: 280,
@@ -62,8 +63,9 @@ export default function () {
     }
   });
 
-  on<UpdateColorsHandler>('UPDATE_COLORS', function({ colors }) {
-    selectedColors = colors
+  on<UpdateColorsHandler>('UPDATE_COLORS', function({ hexColors, opacityPercent }) {
+    selectedColors = hexColors
+    selectedOpacities = opacityPercent
     if (selectedFrame && !isNewFrameSelected) {
       updateGrid(lastCells, lastPadding)
     }
@@ -206,7 +208,7 @@ function updateGrid(cells: number, padding: number) {
           cell.y = i * cell_size;
           const colorIndex = Math.floor(Math.random() * selectedColors.length);
           if ('fills' in cell) {
-            cell.fills = [{ type: 'SOLID', color: hexToRgb(selectedColors[colorIndex]) }];
+            cell.fills = [{ type: 'SOLID', color: hexToRgb(selectedColors[colorIndex]), opacity: parseFloat(selectedOpacities[colorIndex]) / 100 }];
           }
           gridFrame.appendChild(cell);
         }
