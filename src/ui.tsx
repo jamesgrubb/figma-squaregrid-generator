@@ -13,7 +13,8 @@ import {
   Banner,
   IconWarning32,
   TextboxNumeric,
-  Muted, // We'll create this component
+  Muted,
+  Columns // We'll create this component
 } from '@create-figma-plugin/ui'
 import { ColorPicker } from './components/ColorPicker'
 import { emit, on } from '@create-figma-plugin/utilities'
@@ -144,7 +145,9 @@ function Plugin() {
     {!isGridCreated && <Container space="medium">
       
       <VerticalSpace space="large" />
-      <Text>Number of cells</Text>
+      <Columns className="flex items-center justify-between"><div><Text>Cells</Text></div><div><Toggle onChange={handleAutoPopulateChange} value={autoPopulate}>
+      <Text>Exact fit</Text>
+    </Toggle></div></Columns>
       <VerticalSpace space="small" />
       <TextboxNumeric
           variant='border'
@@ -198,11 +201,11 @@ function Plugin() {
       <VerticalSpace space="large" />
       <Text>Fill Colors</Text>
       <VerticalSpace space="small" />
-      <div className="flex flex-col justify-between">
+      {autoPopulate && <div className="flex flex-col justify-between">
       {defaultColors.map((_,index)=>{
       return <ColorPicker key={index} color={hexColors[index]} opacity={opacityPercent[index]} handleHexColorInput={(event)=>handleHexColorInput(index,event)} handleOpacityInput={(event)=>handleOpacityInput(index,event)} />
     })}
-      </div>
+      </div>}
       
     </Container>}
      
