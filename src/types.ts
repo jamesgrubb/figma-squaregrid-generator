@@ -29,3 +29,8 @@ export interface UpdateColorsHandler extends EventHandler {
   name: 'UPDATE_COLORS'
   handler: (data: { hexColors: string[], opacityPercent: string[] }) => void
 }
+
+export interface CellCountHandler {
+  name: 'CELL_COUNT_CHANGE'
+  handler: (data: { cellCount: string }) => void
+}

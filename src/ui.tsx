@@ -19,7 +19,7 @@ import {
 import { ColorPicker } from './components/ColorPicker'
 import { CellCountPicker } from './components/CellCountPicker'
 import { emit, on } from '@create-figma-plugin/utilities'
-import { FrameSelectionHandler, AutoPopulateHandler, PossibleCellCountsHandler, UpdateColorsHandler } from './types'
+import { FrameSelectionHandler, AutoPopulateHandler, PossibleCellCountsHandler, UpdateColorsHandler, CellCountHandler } from './types'
 
 function Plugin() {
   const [cellCount, setCellCount] = useState<number>(0)
@@ -104,6 +104,7 @@ function Plugin() {
     const newValue = target?.value;
     console.log('newValue', newValue)
     setDropdownValue(newValue);
+    emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: newValue });
   };
 
   const handleAutoPopulateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
