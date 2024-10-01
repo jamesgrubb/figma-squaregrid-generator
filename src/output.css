@@ -688,3 +688,15 @@ video {
 .underline {
   text-decoration-line: underline;
 }
+
+.dynamic-color {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  background-color: var(--dynamic-bg-color, transparent);
+}
+
+/* .dynamic-color[data-color] {
+    --dynamic-bg-color: attr(data-color);
+  } */

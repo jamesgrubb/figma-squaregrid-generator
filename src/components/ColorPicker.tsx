@@ -7,20 +7,25 @@ interface ColorPickerProps {
   onChange: (color: string) => void
 }
 
+function hexToRgb(hex: string): string {
+  const rgb = parseInt(hex.replace(/^#/, ''), 16);
+  return `${(rgb >> 16) & 255}, ${(rgb >> 8) & 255}, ${rgb & 255}`;
+}
+
 export function ColorPicker({ color, onChange }: ColorPickerProps) {
   const [isEditing, setIsEditing] = useState(false)
-
+console.log('color', color)
   return (
     <div className="relative">
       <div
-        className="w-8 h-8 rounded cursor-pointer"
-        style={{ backgroundColor: color }}
+       className="dynamic-color"
+       style={{ '--dynamic-bg-color': color } as React.CSSProperties}
         onClick={() => setIsEditing(true)}
       />
       {isEditing && (
         <div className="absolute left-0 z-10 mt-1 top-full">
           <TextboxColor
-            hexColor={color}
+            hexColor={`rgb(${hexToRgb(color)})`}
             opacity="100%"
             onHexColorInput={(event) => {
               onChange(event.currentTarget.value)

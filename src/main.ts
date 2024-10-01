@@ -205,14 +205,18 @@ function updateGrid(cells: number, padding: number) {
           cell.x = j * cell_size;
           cell.y = i * cell_size;
           const colorIndex = Math.floor(Math.random() * selectedColors.length);
-          cell.fills = [{ type: 'SOLID', color: hexToRgb(selectedColors[colorIndex]) }];
+          if ('fills' in cell) {
+            cell.fills = [{ type: 'SOLID', color: hexToRgb(selectedColors[colorIndex]) }];
+          }
           gridFrame.appendChild(cell);
         }
       }
     } else {
       existingCells.forEach(cell => {
         const colorIndex = Math.floor(Math.random() * selectedColors.length);
-        cell.fills = [{ type: 'SOLID', color: hexToRgb(selectedColors[colorIndex]) }];
+        if ('fills' in cell) {
+          cell.fills = [{ type: 'SOLID', color: hexToRgb(selectedColors[colorIndex]) }];
+        }
       });
     }
   }

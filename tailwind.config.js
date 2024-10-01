@@ -5,5 +5,8 @@ export default {
     extend: {},
   },
   plugins: [],
-  darkMode: ['class', '.figma-dark']
+  darkMode: ['class', '.figma-dark'],
+  safelist: [
+    { pattern: /bg-\[#.+\]/ }
+  ]
 }
