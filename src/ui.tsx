@@ -32,7 +32,7 @@ function Plugin() {
   const [hexColors, setHexColors] = useState<string[]>(defaultColors);
   const [opacityPercent, setOpacityPercent] = useState<string[]>(['100%','100%','100%','100%','100%']);
   const [dropdownValue, setDropdownValue] = useState<null | string>(null);
-  const [dropDownOptions, setDropDownOptions] = useState<Array<{ value: string }>>([{ value: '0' },]);
+  const [dropdownOptions, setDropdownOptions] = useState<Array<{ value: string }>>([{ value: '0' },]);
   useEffect(() => {
     emit('UPDATE_GRID', { cellCount, padding })
     emit('UPDATE_COLORS', { hexColors, opacityPercent })
@@ -62,10 +62,11 @@ function Plugin() {
   }, []);
 
   useEffect(() => {
-    const handler = (event: { possibleCellCounts: number[] } | undefined) => {
+    const handler = (event: { possibleCellCounts: number[], exactFitCounts: number[] } | undefined) => {
       if (event?.possibleCellCounts && Array.isArray(event.possibleCellCounts) && event.possibleCellCounts.length > 0) {
           console.log('Received possible cell counts:', event.possibleCellCounts);
-          setDropDownOptions(event.possibleCellCounts.map(cellCount => ({ value: cellCount.toString() })));
+          console.log('Received exact fit cell counts:', event.exactFitCounts);
+          setDropdownOptions(event.exactFitCounts.map(cellCount => ({ value: cellCount.toString() })));
           setSteps(event.possibleCellCounts);
           setCellCount(event.possibleCellCounts[0]); // Set the initial selected value to the first step
       }
@@ -159,7 +160,7 @@ function Plugin() {
       <Text>Exact fit</Text>
     </Toggle></div></Columns>
       <VerticalSpace space="small" />
-      <CellCountPicker cellCountOptions={dropDownOptions} dropdownCellCountChange={handleDropdownCellCountChange}  dropdownValue={dropdownValue} />
+      <CellCountPicker cellCountOptions={dropdownOptions} dropdownCellCountChange={handleDropdownCellCountChange}  dropdownValue={dropdownValue} />
       <TextboxNumeric
           variant='border'
           maximum={300}

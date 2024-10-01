@@ -17,7 +17,7 @@ export interface FrameSelectionHandler {
 
 export interface PossibleCellCountsHandler {
   name: 'POSSIBLE_CELL_COUNTS'
-  handler: (options: { possibleCellCounts: number[] }) => void
+  handler: (counts: { possibleCellCounts: number[], exactFitCounts: number[] }) => void
 }
 
 export interface CreateGridHandler {

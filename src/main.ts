@@ -68,10 +68,10 @@ const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
       lastPadding = padding;
       isGridCreated = true;
       
-      const possibleCellCounts = getPossibleCellCounts(lastWidth, lastHeight, 300);
-      console.log('from main',possibleCellCounts)
+      const { possibleCounts, exactFitCounts } = getPossibleCellCounts(lastWidth, lastHeight, 300);
+      console.log('from main exactFitCounts', exactFitCounts)
       
-    emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { possibleCellCounts });
+    emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { possibleCellCounts: possibleCounts, exactFitCounts });
     }
   });
 
@@ -271,15 +271,20 @@ function generateGreyRedColor(): { r: number, g: number, b: number } {
   }
 }
 
-function getPossibleCellCounts(width: number, height: number, maxCells: number): number[] {
+function getPossibleCellCounts(width: number, height: number, maxCells: number): {possibleCounts: number[], exactFitCounts: number[]} {
   const possibleCounts: number[] = [];
+  const exactFitCounts: number[] = [];
   for (let i = 1; i <= maxCells; i++) {
     const grid = fitSquaresInRectangle(width, height, i);
     if (grid.nrows * grid.ncols === i) {
       possibleCounts.push(i);
+    } if (grid.used_width === Math.floor(width) && 
+    grid.used_height === Math.floor(height)) {
+      exactFitCounts.push(i);
     }
   }
-  return possibleCounts;
+  console.log('possibleCounts',possibleCounts,'exactFitCounts',exactFitCounts)
+  return {possibleCounts, exactFitCounts};
 }
 
 
