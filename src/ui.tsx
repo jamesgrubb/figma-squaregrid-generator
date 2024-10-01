@@ -17,6 +17,7 @@ import {
   Columns // We'll create this component
 } from '@create-figma-plugin/ui'
 import { ColorPicker } from './components/ColorPicker'
+import { CellCountPicker } from './components/CellCountPicker'
 import { emit, on } from '@create-figma-plugin/utilities'
 import { FrameSelectionHandler, AutoPopulateHandler, PossibleCellCountsHandler, UpdateColorsHandler } from './types'
 
@@ -30,7 +31,8 @@ function Plugin() {
   const defaultColors = ['2a5256','cac578','c69a94','57b59c','b1371b'];
   const [hexColors, setHexColors] = useState<string[]>(defaultColors);
   const [opacityPercent, setOpacityPercent] = useState<string[]>(['100%','100%','100%','100%','100%']);
-
+  const [dropdownValue, setDropdownValue] = useState<null | string>(null);
+  const [dropDownOptions, setDropDownOptions] = useState<Array<{ value: string }>>([{ value: '0' },]);
   useEffect(() => {
     emit('UPDATE_GRID', { cellCount, padding })
     emit('UPDATE_COLORS', { hexColors, opacityPercent })
@@ -63,6 +65,7 @@ function Plugin() {
     const handler = (event: { possibleCellCounts: number[] } | undefined) => {
       if (event?.possibleCellCounts && Array.isArray(event.possibleCellCounts) && event.possibleCellCounts.length > 0) {
           console.log('Received possible cell counts:', event.possibleCellCounts);
+          setDropDownOptions(event.possibleCellCounts.map(cellCount => ({ value: cellCount.toString() })));
           setSteps(event.possibleCellCounts);
           setCellCount(event.possibleCellCounts[0]); // Set the initial selected value to the first step
       }
@@ -76,7 +79,6 @@ function Plugin() {
       // setHexColors(event.hexColors);
       // setOpacityPercent(event.opacityPercent);
     });
-
     // Clean up the event listener on component unmount
     return () => {
       // You might need to use a method to remove the listener if applicable
@@ -87,6 +89,7 @@ function Plugin() {
   }, []);
 
 
+  console.log('dropdown values',dropdownValue)
   const debouncedUpdateColors = debounce((newHexColors: string[], newOpacityPercent: string[]) => {
     emit('UPDATE_COLORS', { hexColors: newHexColors, opacityPercent: newOpacityPercent });
   }, 1000);
@@ -94,6 +97,13 @@ function Plugin() {
   useEffect(() => {
     console.log(steps)
   }, [steps])
+
+  const handleDropdownCellCountChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
+    const target = event.currentTarget as HTMLInputElement;
+    const newValue = target?.value;
+    console.log('newValue', newValue)
+    setDropdownValue(newValue);
+  };
 
   const handleAutoPopulateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const target = event.target as HTMLInputElement;
@@ -149,6 +159,7 @@ function Plugin() {
       <Text>Exact fit</Text>
     </Toggle></div></Columns>
       <VerticalSpace space="small" />
+      <CellCountPicker cellCountOptions={dropDownOptions} dropdownCellCountChange={handleDropdownCellCountChange}  dropdownValue={dropdownValue} />
       <TextboxNumeric
           variant='border'
           maximum={300}
