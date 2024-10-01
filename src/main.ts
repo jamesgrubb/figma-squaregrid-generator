@@ -3,7 +3,7 @@
 import { showUI, on, emit } from '@create-figma-plugin/utilities';
 import { GridHandler, FrameSelectionHandler, AutoPopulateHandler, CreateGridHandler, UpdateColorsHandler } from './types';
 import { EventHandler } from '@create-figma-plugin/utilities';
-
+import debounce from 'lodash/debounce';
 let selectedFrame: FrameNode | null = null;
 let lastWidth: number = 0;
 let lastHeight: number = 0;
@@ -24,6 +24,14 @@ export default function () {
   type PossibleCellCountsHandler =EventHandler &{
     possibleCellCounts: number[];
 };
+
+const debouncedUpdateColors = debounce((hexColors: string[], opacityPercent: string[]) => {
+  selectedColors = hexColors;
+  selectedOpacities = opacityPercent;
+  if (selectedFrame && !isNewFrameSelected) {
+    updateGrid(lastCells, lastPadding);
+  }
+}, 300); 
 
   const initialIsFrameSelected = checkSelectionWithoutSideEffects();
   emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected: initialIsFrameSelected });
@@ -64,11 +72,12 @@ export default function () {
   });
 
   on<UpdateColorsHandler>('UPDATE_COLORS', function({ hexColors, opacityPercent }) {
-    selectedColors = hexColors
-    selectedOpacities = opacityPercent
-    if (selectedFrame && !isNewFrameSelected) {
-      updateGrid(lastCells, lastPadding)
-    }
+    debouncedUpdateColors(hexColors, opacityPercent);
+    // selectedColors = hexColors
+    // selectedOpacities = opacityPercent
+    // if (selectedFrame && !isNewFrameSelected) {
+    //   updateGrid(lastCells, lastPadding)
+    // }
   })
 
   figma.on('selectionchange', () => {

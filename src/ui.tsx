@@ -1,8 +1,8 @@
 import { h } from 'preact'
 import { useState, useEffect } from 'preact/hooks'
-import '!./output.css'
+import '!./output.css';
+import debounce from 'lodash/debounce';
 import { 
-  Stack,
   Toggle,
   Button,
   Container,
@@ -72,8 +72,8 @@ function Plugin() {
 
     on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', handler);
     on<UpdateColorsHandler>('UPDATE_COLORS', (event) => {
-      setHexColors(event.hexColors);
-      setOpacityPercent(event.opacityPercent);
+      // setHexColors(event.hexColors);
+      // setOpacityPercent(event.opacityPercent);
     });
 
     // Clean up the event listener on component unmount
@@ -84,6 +84,11 @@ function Plugin() {
     //   setSteps(event.possibleCellCounts);
     // });
   }, []);
+
+
+  const debouncedUpdateColors = debounce((newHexColors: string[], newOpacityPercent: string[]) => {
+    emit('UPDATE_COLORS', { hexColors: newHexColors, opacityPercent: newOpacityPercent });
+  }, 1000);
 
   useEffect(() => {
     console.log(steps)
@@ -103,7 +108,7 @@ function Plugin() {
     newHexColor[index] = event.currentTarget.value;
     console.log(newHexColor)
     setHexColors(newHexColor);
-    emit('UPDATE_COLORS', { hexColors, opacityPercent })
+    debouncedUpdateColors(newHexColor, opacityPercent);
   }
 
   function handleOpacityInput(index:number, event: h.JSX.TargetedEvent<HTMLInputElement>) {
@@ -112,7 +117,8 @@ function Plugin() {
     newOpacity[index] = event.currentTarget.value;
     console.log(newOpacity)
     setOpacityPercent(newOpacity);
-    emit('UPDATE_COLORS', { hexColors, opacityPercent })
+    debouncedUpdateColors(hexColors, newOpacity);
+
   }
     
   function handleCreateGrid() {
