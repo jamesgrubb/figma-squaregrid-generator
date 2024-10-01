@@ -33,6 +33,10 @@ const debouncedUpdateColors = debounce((hexColors: string[], opacityPercent: str
   }
 }, 300); 
 
+const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
+  updateGrid(cellCount, padding);
+}, 100);
+
   const initialIsFrameSelected = checkSelectionWithoutSideEffects();
   emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected: initialIsFrameSelected });
 
@@ -43,7 +47,7 @@ const debouncedUpdateColors = debounce((hexColors: string[], opacityPercent: str
 
   on<GridHandler>('UPDATE_GRID', function({ cellCount, padding }) {
     if (isGridCreated && checkSelection()) {
-      updateGrid(cellCount, padding);
+      debouncedUpdateGrid(cellCount, padding);
       lastCells = cellCount;
       lastPadding = padding;
     }
