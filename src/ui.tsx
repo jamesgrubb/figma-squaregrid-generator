@@ -75,11 +75,12 @@ function Plugin() {
           if(event.exactFitCounts.length === 1){
             setCellCount(exactFitArray[0]);
             emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: exactFitArray[0].toString() });
-          }
+            }
+          
           }
           else{
-            setDropdownOptions([]);
-            setDropdownValue(null);
+            setDropdownOptions([{value: 'No exact fits'}]);
+            setDropdownValue('No exact fits');
           }
           setSteps(event.possibleCellCounts);
           setCellCount(event.possibleCellCounts[0]); // Set the initial selected value to the first step
