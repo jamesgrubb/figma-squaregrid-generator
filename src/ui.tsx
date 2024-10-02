@@ -34,6 +34,8 @@ function Plugin() {
   const [dropdownValue, setDropdownValue] = useState<null | string>(null);
   const [dropdownOptions, setDropdownOptions] = useState<Array<{ value: string }>>([{ value: '0' },]);
   const [exactFit, setExactFit] = useState<boolean>(false);
+  const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  
   useEffect(() => {
     emit('UPDATE_GRID', { cellCount, padding })
     emit('UPDATE_COLORS', { hexColors, opacityPercent })
@@ -68,8 +70,9 @@ function Plugin() {
           console.log('Received possible cell counts:', event.possibleCellCounts);
           console.log('Received exact fit cell counts:', event.exactFitCounts);
           let exactFitArray: number[] = [];
-          if (event.exactFitCounts.length > 0) {
+          if (event.exactFitCounts.length > 1) {
             exactFitArray = event.exactFitCounts;
+            setExactFit(true);
           setDropdownOptions(exactFitArray.map(cellCount => ({ value: cellCount.toString() })));
           setDropdownValue(exactFitArray[0].toString());
           if(event.exactFitCounts.length === 1){
@@ -153,7 +156,8 @@ const handleExactFitChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
   const target = event.currentTarget as HTMLInputElement;
   const newValue = target?.checked;
   console.log(newValue)
-  setExactFit(newValue);
+  // setExactFit(newValue);
+  setShowDropdown(newValue);
   emit<ExactFitHandler>('EXACT_FIT', { exactFit: newValue });
 }
 
@@ -180,12 +184,23 @@ const handleExactFitChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
     {!isGridCreated && <Container space="medium">
       
       <VerticalSpace space="large" />
-      {exactFit ? <Text>Exact Fit</Text> : <Text>Custom</Text>}
-      <Columns className="flex items-center justify-between"><div><Text>Cells</Text></div><div><Toggle onChange={handleExactFitChange} value={exactFit}>
-      <Text>Exact fit</Text>
-    </Toggle></div></Columns>
+
+      <Columns className="flex items-center justify-between">
+        <div>
+            <Text>Grid Cells</Text>
+        </div>
+        { exactFit && <div>
+            <Toggle onChange={handleExactFitChange} value={showDropdown}>
+                <Text>Perfect fit</Text>
+            </Toggle>
+        </div>}
+      </Columns>
       <VerticalSpace space="small" />
-      <CellCountPicker cellCountOptions={dropdownOptions} dropdownCellCountChange={handleDropdownCellCountChange}  dropdownValue={dropdownValue} />
+      {showDropdown &&<CellCountPicker 
+        cellCountOptions={dropdownOptions} 
+        dropdownCellCountChange={handleDropdownCellCountChange}  
+        dropdownValue={dropdownValue} />}
+        
       <TextboxNumeric
           variant='border'
           maximum={300}
