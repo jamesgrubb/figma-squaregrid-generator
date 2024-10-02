@@ -71,23 +71,28 @@ function Plugin() {
           console.log('Received possible cell counts:', event.possibleCellCounts);
           console.log('Received exact fit cell counts:', event.exactFitCounts);
           let exactFitArray: number[] = [];
-          if (event.exactFitCounts.length > 1) {
+          if (event.exactFitCounts.length > 0) {
             exactFitArray = event.exactFitCounts;
             setExactFit(true);
-          setDropdownOptions(exactFitArray.map(cellCount => ({ value: cellCount.toString() })));
-          setDropdownValue(exactFitArray[0].toString());
-          if(event.exactFitCounts.length === 1){
-            setCellCount(exactFitArray[0]);
-            emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: exactFitArray[0].toString() });
+            setDropdownOptions(exactFitArray.map(cellCount => ({ value: cellCount.toString() })));
+            setDropdownValue(exactFitArray[0].toString());
+            if(event.exactFitCounts.length === 1){
+              console.log('exact fit', exactFitArray[0])
+              setCellCount(exactFitArray[0]);
+              setShowDropdown(false); // Show the dropdown for exact fit
+              emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: exactFitArray[0].toString() });
             }
           
           }
           else{
             setDropdownOptions([{value: 'No exact fits'}]);
             setDropdownValue('No exact fits');
+            setExactFit(false);
           }
           setSteps(event.possibleCellCounts);
-          setCellCount(event.possibleCellCounts[0]); // Set the initial selected value to the first step
+          if (!exactFitArray.length) {
+            setCellCount(event.possibleCellCounts[0]); // Set initial value only if no exact fit
+          }
       }
     }
     
