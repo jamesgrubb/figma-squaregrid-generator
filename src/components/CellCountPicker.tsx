@@ -1,5 +1,5 @@
 import { h } from 'preact'
-import { Dropdown, DropdownOption, IconLayerFrame16 } from '@create-figma-plugin/ui'
+import { Dropdown, DropdownOption,IconTidyGrid32, } from '@create-figma-plugin/ui'
 import '../../src/input.css'
 
 export const CellCountPicker = ({ cellCountOptions, dropdownCellCountChange, dropdownValue }: { 
@@ -8,6 +8,6 @@ export const CellCountPicker = ({ cellCountOptions, dropdownCellCountChange, dro
     dropdownValue: string | null
 }) => {
     return (
-        <Dropdown icon={<IconLayerFrame16 />} onChange={dropdownCellCountChange} options={cellCountOptions} value={dropdownValue} variant='border'/>
+        <Dropdown icon={<IconTidyGrid32 />} onChange={dropdownCellCountChange} options={cellCountOptions} value={dropdownValue} variant='border'/>
   )
 }

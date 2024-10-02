@@ -3,6 +3,7 @@ import { useState, useEffect } from 'preact/hooks'
 import '!./output.css';
 import debounce from 'lodash/debounce';
 import { 
+  IconTidyGrid32,
   Toggle,
   Button,
   Container,
@@ -196,13 +197,14 @@ const handleExactFitChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
             </Toggle>
         </div>}
       </Columns>
-      <VerticalSpace space="small" />
+      {showDropdown && <VerticalSpace space="small" />}
       {showDropdown &&<CellCountPicker 
         cellCountOptions={dropdownOptions} 
         dropdownCellCountChange={handleDropdownCellCountChange}  
         dropdownValue={dropdownValue} />}
         <VerticalSpace space="small" />
       <TextboxNumeric
+          icon={<IconTidyGrid32 />}     
           variant='border'
           maximum={300}
           minimum={1}
