@@ -1,7 +1,7 @@
 /// <reference types="@figma/plugin-typings" />
 
 import { showUI, on, emit } from '@create-figma-plugin/utilities';
-import { GridHandler, FrameSelectionHandler, AutoPopulateHandler, CreateGridHandler, UpdateColorsHandler, CellCountHandler } from './types';
+import { GridHandler, FrameSelectionHandler, AutoPopulateHandler, CreateGridHandler, UpdateColorsHandler, CellCountHandler, ExactFitHandler } from './types';
 import { EventHandler } from '@create-figma-plugin/utilities';
 import debounce from 'lodash/debounce';
 let selectedFrame: FrameNode | null = null;
@@ -73,6 +73,12 @@ const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
       
     emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { possibleCellCounts: possibleCounts, exactFitCounts });
     }
+  });
+
+  on<ExactFitHandler>('EXACT_FIT', (data) => {
+    // Handle the exactFit change here
+    console.log('Exact fit changed:', data.exactFit);
+    // Add your logic to handle the exact fit change
   });
 
   on<CellCountHandler>('CELL_COUNT_CHANGE', function({ cellCount }) {

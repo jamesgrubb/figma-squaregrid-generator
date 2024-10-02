@@ -34,3 +34,8 @@ export interface CellCountHandler {
   name: 'CELL_COUNT_CHANGE'
   handler: (data: { cellCount: string }) => void
 }
+
+export interface ExactFitHandler {
+  name: 'EXACT_FIT'
+  handler: (data: { exactFit: boolean }) => void
+}

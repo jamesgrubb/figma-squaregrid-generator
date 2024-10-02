@@ -19,7 +19,7 @@ import {
 import { ColorPicker } from './components/ColorPicker'
 import { CellCountPicker } from './components/CellCountPicker'
 import { emit, on } from '@create-figma-plugin/utilities'
-import { FrameSelectionHandler, AutoPopulateHandler, PossibleCellCountsHandler, UpdateColorsHandler, CellCountHandler } from './types'
+import { FrameSelectionHandler, AutoPopulateHandler, PossibleCellCountsHandler, UpdateColorsHandler, CellCountHandler, ExactFitHandler } from './types'
 
 function Plugin() {
   const [cellCount, setCellCount] = useState<number>(0)
@@ -33,6 +33,7 @@ function Plugin() {
   const [opacityPercent, setOpacityPercent] = useState<string[]>(['100%','100%','100%','100%','100%']);
   const [dropdownValue, setDropdownValue] = useState<null | string>(null);
   const [dropdownOptions, setDropdownOptions] = useState<Array<{ value: string }>>([{ value: '0' },]);
+  const [exactFit, setExactFit] = useState<boolean>(false);
   useEffect(() => {
     emit('UPDATE_GRID', { cellCount, padding })
     emit('UPDATE_COLORS', { hexColors, opacityPercent })
@@ -66,7 +67,20 @@ function Plugin() {
       if (event?.possibleCellCounts && Array.isArray(event.possibleCellCounts) && event.possibleCellCounts.length > 0) {
           console.log('Received possible cell counts:', event.possibleCellCounts);
           console.log('Received exact fit cell counts:', event.exactFitCounts);
-          setDropdownOptions(event.exactFitCounts.map(cellCount => ({ value: cellCount.toString() })));
+          let exactFitArray: number[] = [];
+          if (event.exactFitCounts.length > 0) {
+            exactFitArray = event.exactFitCounts;
+          setDropdownOptions(exactFitArray.map(cellCount => ({ value: cellCount.toString() })));
+          setDropdownValue(exactFitArray[0].toString());
+          if(event.exactFitCounts.length === 1){
+            setCellCount(exactFitArray[0]);
+            emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: exactFitArray[0].toString() });
+          }
+          }
+          else{
+            setDropdownOptions([]);
+            setDropdownValue(null);
+          }
           setSteps(event.possibleCellCounts);
           setCellCount(event.possibleCellCounts[0]); // Set the initial selected value to the first step
       }
@@ -134,6 +148,14 @@ function Plugin() {
 
   }
     
+const handleExactFitChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
+  const target = event.currentTarget as HTMLInputElement;
+  const newValue = target?.checked;
+  console.log(newValue)
+  setExactFit(newValue);
+  emit<ExactFitHandler>('EXACT_FIT', { exactFit: newValue });
+}
+
   function handleCreateGrid() {
     emit('CREATE_GRID', { cellCount, padding })
     setIsGridCreated(false);
@@ -157,7 +179,8 @@ function Plugin() {
     {!isGridCreated && <Container space="medium">
       
       <VerticalSpace space="large" />
-      <Columns className="flex items-center justify-between"><div><Text>Cells</Text></div><div><Toggle onChange={handleAutoPopulateChange} value={autoPopulate}>
+      {exactFit ? <Text>Exact Fit</Text> : <Text>Custom</Text>}
+      <Columns className="flex items-center justify-between"><div><Text>Cells</Text></div><div><Toggle onChange={handleExactFitChange} value={exactFit}>
       <Text>Exact fit</Text>
     </Toggle></div></Columns>
       <VerticalSpace space="small" />
