@@ -36,6 +36,8 @@ function Plugin() {
   const [dropdownOptions, setDropdownOptions] = useState<Array<{ value: string }>>([{ value: '0' },]);
   const [exactFit, setExactFit] = useState<boolean>(false);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  const [exactFitCount, setExactFitCount] = useState<number | null>(null);
+  const [isExactFitEnabled, setIsExactFitEnabled] = useState(false);
   
   useEffect(() => {
     emit('UPDATE_GRID', { cellCount, padding })
@@ -68,31 +70,32 @@ function Plugin() {
   useEffect(() => {
     const handler = (event: { possibleCellCounts: number[], exactFitCounts: number[] } | undefined) => {
       if (event?.possibleCellCounts && Array.isArray(event.possibleCellCounts) && event.possibleCellCounts.length > 0) {
-          console.log('Received possible cell counts:', event.possibleCellCounts);
-          console.log('Received exact fit cell counts:', event.exactFitCounts);
-          let exactFitArray: number[] = [];
-          if (event.exactFitCounts.length > 0) {
-            exactFitArray = event.exactFitCounts;
-            setExactFit(true);
-            setDropdownOptions(exactFitArray.map(cellCount => ({ value: cellCount.toString() })));
-            setDropdownValue(exactFitArray[0].toString());
-            if(event.exactFitCounts.length === 1){
-              console.log('exact fit', exactFitArray[0])
-              setCellCount(exactFitArray[0]);
-              setShowDropdown(false); // Show the dropdown for exact fit
-              emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: exactFitArray[0].toString() });
-            }
-          
+        console.log('Received possible cell counts:', event.possibleCellCounts);
+        console.log('Received exact fit cell counts:', event.exactFitCounts);
+        
+        setSteps(event.possibleCellCounts);
+        
+        if (event.exactFitCounts.length > 0) {
+          setExactFit(true);
+          if (event.exactFitCounts.length === 1) {
+            setExactFitCount(event.exactFitCounts[0]);
+            setShowDropdown(false);
+          } else {
+            setDropdownOptions(event.exactFitCounts.map(cellCount => ({ value: cellCount.toString() })));
+            setDropdownValue(event.exactFitCounts[0].toString());
+            setExactFitCount(null);
           }
-          else{
-            setDropdownOptions([{value: 'No exact fits'}]);
-            setDropdownValue('No exact fits');
-            setExactFit(false);
-          }
-          setSteps(event.possibleCellCounts);
-          if (!exactFitArray.length) {
-            setCellCount(event.possibleCellCounts[0]); // Set initial value only if no exact fit
-          }
+        } else {
+          setDropdownOptions([{value: 'No exact fits'}]);
+          setDropdownValue('No exact fits');
+          setExactFit(false);
+          setExactFitCount(null);
+        }
+        
+        // Set initial cell count only if it hasn't been set yet
+        if (cellCount === 0) {
+          setCellCount(event.possibleCellCounts[0]);
+        }
       }
     }
     
@@ -111,7 +114,7 @@ function Plugin() {
     // on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', (event) => {
     //   setSteps(event.possibleCellCounts);
     // });
-  }, []);
+  }, [cellCount]);
 
 
   console.log('dropdown values',dropdownValue)
@@ -159,14 +162,26 @@ function Plugin() {
 
   }
     
-const handleExactFitChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
-  const target = event.currentTarget as HTMLInputElement;
-  const newValue = target?.checked;
-  console.log(newValue)
-  // setExactFit(newValue);
-  setShowDropdown(newValue);
-  emit<ExactFitHandler>('EXACT_FIT', { exactFit: newValue });
-}
+  const handleExactFitChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
+    const target = event.currentTarget as HTMLInputElement;
+    const newValue = target?.checked;
+    setIsExactFitEnabled(newValue);
+  
+    if (exactFitCount !== null) {
+      if (newValue) {
+        setCellCount(exactFitCount);
+        emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: exactFitCount.toString() });
+      } else {
+        const nearestValue = findClosestStep(cellCount);
+        setCellCount(nearestValue);
+        emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestValue.toString() });
+      }
+    } else {
+      setShowDropdown(newValue);
+    }
+    
+    emit<ExactFitHandler>('EXACT_FIT', { exactFit: newValue });
+  }
 
   function handleCreateGrid() {
     emit('CREATE_GRID', { cellCount, padding })
@@ -197,8 +212,8 @@ const handleExactFitChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
             <Text>Grid Cells</Text>
         </div>
         { exactFit && <div>
-            <Toggle onChange={handleExactFitChange} value={showDropdown}>
-                <Text>Perfect fit</Text>
+          <Toggle onChange={handleExactFitChange} value={isExactFitEnabled}>
+                <Text>{exactFitCount !== null ? `Show 1 exact fit` : 'Perfect fit'}</Text>
             </Toggle>
         </div>}
       </Columns>
