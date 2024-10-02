@@ -122,6 +122,7 @@ function Plugin() {
     const newValue = target?.value;
     console.log('newValue', newValue)
     setDropdownValue(newValue);
+    setCellCount(parseInt(newValue));
     emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: newValue });
   };
 
@@ -200,7 +201,7 @@ const handleExactFitChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
         cellCountOptions={dropdownOptions} 
         dropdownCellCountChange={handleDropdownCellCountChange}  
         dropdownValue={dropdownValue} />}
-        
+        <VerticalSpace space="small" />
       <TextboxNumeric
           variant='border'
           maximum={300}
