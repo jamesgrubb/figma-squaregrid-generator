@@ -221,7 +221,7 @@ function Plugin() {
         </div>
         { exactFit && <div>
           <Toggle onChange={handleExactFitChange} value={isExactFitEnabled}>
-                <Text>{exactFitCount !== null ? `Show 1 exact fit` : 'Perfect fit'}</Text>
+                <Text>{exactFitCount !== null ? `Show 1 perfect fit` : 'Show perfect fits'}</Text>
             </Toggle>
         </div>}
       </Columns>
