@@ -39,3 +39,13 @@ export interface ExactFitHandler {
   name: 'EXACT_FIT'
   handler: (data: { exactFit: boolean }) => void
 }
+
+export interface PerfectFitsHandler extends EventHandler {
+  name: 'PERFECT_FITS'
+  handler: (data: { perfectFits: number[] }) => void
+}
+
+export interface SinglePerfectFitHandler extends EventHandler {
+  name: 'SINGLE_PERFECT_FIT'
+  handler: (data: { singlePerfectFit: number | null }) => void
+}

@@ -1,7 +1,7 @@
 /// <reference types="@figma/plugin-typings" />
 
 import { showUI, on, emit } from '@create-figma-plugin/utilities';
-import { GridHandler, FrameSelectionHandler, AutoPopulateHandler, CreateGridHandler, UpdateColorsHandler, CellCountHandler, ExactFitHandler } from './types';
+import { GridHandler, FrameSelectionHandler, AutoPopulateHandler, CreateGridHandler, UpdateColorsHandler, CellCountHandler, ExactFitHandler, PerfectFitsHandler, SinglePerfectFitHandler } from './types';
 import { EventHandler } from '@create-figma-plugin/utilities';
 import debounce from 'lodash/debounce';
 let selectedFrame: FrameNode | null = null;
@@ -118,16 +118,36 @@ const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
         figma.closePlugin();
         return;
       }
-
+  
       const currentWidth = selectedFrame.width;
       const currentHeight = selectedFrame.height;
       if (currentWidth !== lastWidth || currentHeight !== lastHeight) {
         lastWidth = currentWidth;
         lastHeight = currentHeight;
         updateGrid(lastCells, lastPadding);
+  
+        // Recalculate possible cell counts and exact fit counts
+        const { possibleCounts, exactFitCounts } = getPossibleCellCounts(lastWidth, lastHeight, 300);
+        console.log('Frame resized. New exactFitCounts:', exactFitCounts);
+        
+        // Find the single perfect fit
+        const singlePerfectFit = findSinglePerfectFit(exactFitCounts);
+        
+        // Emit the updated counts to the UI
+        emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { possibleCellCounts: possibleCounts, exactFitCounts });
+        
+        // Emit the updated perfect fits
+        emit<PerfectFitsHandler>('PERFECT_FITS', { perfectFits: exactFitCounts });
+        
+        // Emit the single perfect fit
+        emit<SinglePerfectFitHandler>('SINGLE_PERFECT_FIT', { singlePerfectFit });
       }
     }
   });
+}
+
+function findSinglePerfectFit(exactFitCounts: number[]): number | null {
+  return exactFitCounts.length === 1 ? exactFitCounts[0] : null;
 }
 
 function checkSelectionWithoutSideEffects(): boolean {

@@ -80,19 +80,27 @@ function Plugin() {
           setDropdownOptions(event.exactFitCounts.map(cellCount => ({ value: cellCount.toString() })));
           setDropdownValue(event.exactFitCounts[0].toString());
           setExactFitCount(event.exactFitCounts.length === 1 ? event.exactFitCounts[0] : null);
+          setShowDropdown(isExactFitEnabled); // Show dropdown only if exact fit is enabled
         } else {
-          setDropdownOptions([{value: 'No exact fits'}]);
-          setDropdownValue('No exact fits');
           setExactFit(false);
+          setDropdownOptions([]);
+          setDropdownValue(null);
           setExactFitCount(null);
+          setShowDropdown(false); // Hide dropdown when there are no exact fits
+          setIsExactFitEnabled(false); // Disable exact fit toggle
         }
         
         // Set initial cell count only if it hasn't been set yet
         if (cellCount === 0) {
           setCellCount(event.possibleCellCounts[0]);
+        } else {
+          // Find the nearest valid cell count
+          const nearestCellCount = findClosestStep(cellCount);
+          setCellCount(nearestCellCount);
         }
       }
     }
+
     
 
    
@@ -109,7 +117,7 @@ function Plugin() {
     // on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', (event) => {
     //   setSteps(event.possibleCellCounts);
     // });
-  }, [cellCount]);
+  }, [cellCount,isExactFitEnabled]);
 
 
   console.log('dropdown values',dropdownValue)
