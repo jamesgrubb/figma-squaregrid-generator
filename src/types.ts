@@ -49,3 +49,8 @@ export interface SinglePerfectFitHandler extends EventHandler {
   name: 'SINGLE_PERFECT_FIT'
   handler: (data: { singlePerfectFit: number | null }) => void
 }
+
+export interface RandomizeColorsHandler {
+  name: 'RANDOMIZE_COLORS'
+  handler: (data: { randomize: boolean }) => void
+}

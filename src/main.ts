@@ -1,7 +1,7 @@
 /// <reference types="@figma/plugin-typings" />
 
 import { showUI, on, emit } from '@create-figma-plugin/utilities';
-import { GridHandler, FrameSelectionHandler, AutoPopulateHandler, CreateGridHandler, UpdateColorsHandler, CellCountHandler, ExactFitHandler, PerfectFitsHandler, SinglePerfectFitHandler } from './types';
+import { GridHandler, FrameSelectionHandler, AutoPopulateHandler, CreateGridHandler, UpdateColorsHandler, CellCountHandler, ExactFitHandler, PerfectFitsHandler, SinglePerfectFitHandler, RandomizeColorsHandler } from './types';
 import { EventHandler } from '@create-figma-plugin/utilities';
 import debounce from 'lodash/debounce';
 let selectedFrame: FrameNode | null = null;
@@ -15,6 +15,8 @@ let isNewFrameSelected: boolean = false;
 let isGridCreated: boolean = false;
 let selectedColors: string[] = ['2a5256','cac578','c69a94','57b59c','b1371b'];
 let selectedOpacities: string[] = ['100%','100%','100%','100%','100%'];
+let randomizeColors: boolean = false;
+
 export default function () {
   showUI({
     height: 280,
@@ -44,6 +46,14 @@ const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
     const isFrameSelected = checkSelectionWithoutSideEffects();
     emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected });
   });
+
+  on<RandomizeColorsHandler>('RANDOMIZE_COLORS', function({ randomize }) {
+    randomizeColors = randomize;
+    if (selectedFrame && !isNewFrameSelected) {
+      updateGrid(lastCells, lastPadding);
+    }
+  });
+
 
   on<GridHandler>('UPDATE_GRID', function({ cellCount, padding }) {
     if (isGridCreated && checkSelection()) {
@@ -247,6 +257,24 @@ function updateGrid(cells: number, padding: number) {
   if (autoPopulate) {
     const existingCells = gridFrame.findChildren(n => n.type === 'FRAME');
     let colorIndex = 0;
+    let colorOrder = Array.from({ length: selectedColors.length }, (_, i) => i);
+    console.log('colorOrder', colorOrder);
+    const applyColor = (cell: SceneNode) => {
+      if ('fills' in cell) {
+        const currentColorIndex = colorOrder[colorIndex];
+        const opacityValue = parseFloat(selectedOpacities[currentColorIndex]);
+        cell.fills = [{
+          type: 'SOLID',
+          color: hexToRgb(selectedColors[currentColorIndex]),
+          opacity: isNaN(opacityValue) ? 1 : opacityValue / 100
+        }];
+      }
+      
+      colorIndex = (colorIndex + 1) % selectedColors.length;
+      if (randomizeColors && colorIndex === 0) {
+        colorOrder = colorOrder.sort(() => Math.random() - 0.5);
+      }
+    };
     if (existingCells.length === 0) {
       for (let i = 0; i < nrows; i++) {
         for (let j = 0; j < ncols; j++) {
@@ -254,28 +282,12 @@ function updateGrid(cells: number, padding: number) {
           cell.resize(cell_size, cell_size);
           cell.x = j * cell_size;
           cell.y = i * cell_size;
-          
-          if ('fills' in cell) {
-            cell.fills = [{ 
-              type: 'SOLID', 
-              color: hexToRgb(selectedColors[colorIndex]), 
-              opacity: parseFloat(selectedOpacities[colorIndex]) / 100 }];
-          }
-          gridFrame.appendChild(cell);
-          colorIndex = (colorIndex + 1) % selectedColors.length;
+          applyColor(cell);
+          gridFrame.appendChild(cell);          
         }
       }
     } else {
-      existingCells.forEach(cell => {        
-        if ('fills' in cell) {
-          cell.fills = [{ 
-            type: 'SOLID', 
-            color: hexToRgb(selectedColors[colorIndex]),
-            opacity: parseFloat(selectedOpacities[colorIndex]) / 100
-          }];
-        }
-        colorIndex = (colorIndex + 1) % selectedColors.length;
-      });
+      existingCells.forEach(applyColor);
     }
   }
 

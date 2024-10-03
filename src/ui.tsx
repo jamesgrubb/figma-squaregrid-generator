@@ -38,6 +38,7 @@ function Plugin() {
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [exactFitCount, setExactFitCount] = useState<number | null>(null);
   const [isExactFitEnabled, setIsExactFitEnabled] = useState(false);
+  const [randomizeColors, setRandomizeColors] = useState(false)
   
   const numColorPickers = Math.min(cellCount, 5);
 
@@ -59,6 +60,11 @@ function Plugin() {
 
   
   console.log(isEnabled)
+
+  useEffect(() => {
+    emit('RANDOMIZE_COLORS', { randomize: randomizeColors })
+  }, [randomizeColors])
+
   useEffect(() => {   
     on<FrameSelectionHandler>('FRAME_SELECTED', (event) => {
       setIsEnabled(event.isFrameSelected);     
@@ -307,6 +313,10 @@ function Plugin() {
       <VerticalSpace space="large" />
       
       <Toggle onChange={handleAutoPopulateChange} value={autoPopulate}>
+      <VerticalSpace space="small" />
+      <Toggle value={randomizeColors} onValueChange={setRandomizeColors}>
+        Randomize colors after 5
+      </Toggle>
       <Text>Fill Grid</Text>
     </Toggle>
       <VerticalSpace space="small" />
