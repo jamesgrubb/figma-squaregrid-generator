@@ -167,19 +167,32 @@ function Plugin() {
     const newValue = target?.checked;
     setIsExactFitEnabled(newValue);
   
-    if (exactFitCount !== null) {
-      if (newValue) {
-        setCellCount(exactFitCount);
-        emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: exactFitCount.toString() });
+    if (newValue) {
+      // Switching to dropdown (exact fit)
+      let newCellCount: number;
+      if (dropdownOptions.length > 0 && dropdownOptions[0].value !== 'No exact fits') {
+        // Find the nearest exact fit value to the current cellCount
+        const nearestOption = dropdownOptions.reduce((prev, curr) => {
+          const prevValue = parseInt(prev.value, 10);
+          const currValue = parseInt(curr.value, 10);
+          return Math.abs(currValue - cellCount) < Math.abs(prevValue - cellCount) ? curr : prev;
+        });
+        newCellCount = parseInt(nearestOption.value, 10);
       } else {
-        const nearestValue = findClosestStep(cellCount);
-        setCellCount(nearestValue);
-        emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestValue.toString() });
+        // If no exact fits, keep the current cellCount
+        newCellCount = cellCount;
       }
+      setCellCount(newCellCount);
+      setDropdownValue(newCellCount.toString());
+      emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: newCellCount.toString() });
     } else {
-      setShowDropdown(newValue);
+      // Switching to range slider
+      const nearestValue = findClosestStep(cellCount);
+      setCellCount(nearestValue);
+      emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestValue.toString() });
     }
-    
+  
+    setShowDropdown(newValue);
     emit<ExactFitHandler>('EXACT_FIT', { exactFit: newValue });
   }
 
