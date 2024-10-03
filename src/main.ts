@@ -246,6 +246,7 @@ function updateGrid(cells: number, padding: number) {
 
   if (autoPopulate) {
     const existingCells = gridFrame.findChildren(n => n.type === 'FRAME');
+    let colorIndex = 0;
     if (existingCells.length === 0) {
       for (let i = 0; i < nrows; i++) {
         for (let j = 0; j < ncols; j++) {
@@ -253,19 +254,27 @@ function updateGrid(cells: number, padding: number) {
           cell.resize(cell_size, cell_size);
           cell.x = j * cell_size;
           cell.y = i * cell_size;
-          const colorIndex = Math.floor(Math.random() * selectedColors.length);
+          
           if ('fills' in cell) {
-            cell.fills = [{ type: 'SOLID', color: hexToRgb(selectedColors[colorIndex]), opacity: parseFloat(selectedOpacities[colorIndex]) / 100 }];
+            cell.fills = [{ 
+              type: 'SOLID', 
+              color: hexToRgb(selectedColors[colorIndex]), 
+              opacity: parseFloat(selectedOpacities[colorIndex]) / 100 }];
           }
           gridFrame.appendChild(cell);
+          colorIndex = (colorIndex + 1) % selectedColors.length;
         }
       }
     } else {
-      existingCells.forEach(cell => {
-        const colorIndex = Math.floor(Math.random() * selectedColors.length);
+      existingCells.forEach(cell => {        
         if ('fills' in cell) {
-          cell.fills = [{ type: 'SOLID', color: hexToRgb(selectedColors[colorIndex]) }];
+          cell.fills = [{ 
+            type: 'SOLID', 
+            color: hexToRgb(selectedColors[colorIndex]),
+            opacity: parseFloat(selectedOpacities[colorIndex]) / 100
+          }];
         }
+        colorIndex = (colorIndex + 1) % selectedColors.length;
       });
     }
   }
