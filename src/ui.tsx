@@ -39,6 +39,8 @@ function Plugin() {
   const [exactFitCount, setExactFitCount] = useState<number | null>(null);
   const [isExactFitEnabled, setIsExactFitEnabled] = useState(false);
   
+  const numColorPickers = Math.min(cellCount, 5);
+
   useEffect(() => {
     emit('UPDATE_GRID', { cellCount, padding })
     emit('UPDATE_COLORS', { hexColors, opacityPercent })
@@ -290,9 +292,15 @@ function Plugin() {
     </Toggle>
       <VerticalSpace space="small" />
       {autoPopulate && <div className="flex flex-col justify-between">
-      {defaultColors.map((_,index)=>{
-      return <ColorPicker key={index} color={hexColors[index]} opacity={opacityPercent[index]} handleHexColorInput={(event)=>handleHexColorInput(index,event)} handleOpacityInput={(event)=>handleOpacityInput(index,event)} />
-    })}
+        {[...Array(numColorPickers)].map((_, index) => (
+            <ColorPicker
+              key={index}
+              color={hexColors[index] || defaultColors[index % defaultColors.length]}
+              opacity={opacityPercent[index] || '100%'}
+              handleHexColorInput={(event) => handleHexColorInput(index, event)}
+              handleOpacityInput={(event) => handleOpacityInput(index, event)}
+            />
+          ))}
       </div>}
       
     </Container>}
