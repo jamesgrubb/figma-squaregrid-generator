@@ -223,7 +223,7 @@ function Plugin() {
         dropdownCellCountChange={handleDropdownCellCountChange}  
         dropdownValue={dropdownValue} />}
         <VerticalSpace space="small" />
-      <TextboxNumeric
+      {!isExactFitEnabled && <TextboxNumeric
           icon={<IconTidyGrid32 />}     
           variant='border'
           maximum={300}
@@ -231,10 +231,10 @@ function Plugin() {
           onValueInput={handleCellCountChange}
           value={cellCount.toString()}
           disabled={isGridCreated} // Disable based on state
-        />
-      <VerticalSpace space="small" />
+        />}
+      {!isExactFitEnabled && <VerticalSpace space="small" />}
       <div>
-      <RangeSlider
+      {!isExactFitEnabled && <RangeSlider
         maximum={maxStep} // Use the calculated maximum value from the steps
         minimum={minStep} // Use the calculated minimum value from the steps
         value={cellCount.toString()}
@@ -244,7 +244,7 @@ function Plugin() {
           setCellCount(closestStep);
         }}
         disabled={isGridCreated} // Disable based on state
-      />
+      />}
       </div>
       
       <VerticalSpace space="medium" />
