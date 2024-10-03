@@ -129,10 +129,6 @@ function Plugin() {
       }
     }
 
-    
-
-   
-
     on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', handler);
     on<UpdateColorsHandler>('UPDATE_COLORS', (event) => {
       // setHexColors(event.hexColors);

@@ -1,9 +1,21 @@
 /// <reference types="@figma/plugin-typings" />
 
 import { showUI, on, emit } from '@create-figma-plugin/utilities';
-import { GridHandler, FrameSelectionHandler, AutoPopulateHandler, CreateGridHandler, UpdateColorsHandler, CellCountHandler, ExactFitHandler, PerfectFitsHandler, SinglePerfectFitHandler, RandomizeColorsHandler } from './types';
+import { 
+  GridHandler, 
+  FrameSelectionHandler, 
+  AutoPopulateHandler, 
+  CreateGridHandler, 
+  UpdateColorsHandler, 
+  CellCountHandler, 
+  ExactFitHandler, 
+  PerfectFitsHandler, 
+  SinglePerfectFitHandler, 
+  RandomizeColorsHandler 
+} from './types';
 import { EventHandler } from '@create-figma-plugin/utilities';
 import debounce from 'lodash/debounce';
+
 let selectedFrame: FrameNode | null = null;
 let lastWidth: number = 0;
 let lastHeight: number = 0;
@@ -23,21 +35,22 @@ export default function () {
     width: 240
   });
 
-  type PossibleCellCountsHandler =EventHandler &{
+  type PossibleCellCountsHandler = EventHandler & {
     possibleCellCounts: number[];
-};
+    exactFitCounts: number[];
+  };
 
-const debouncedUpdateColors = debounce((hexColors: string[], opacityPercent: string[]) => {
-  selectedColors = hexColors;
-  selectedOpacities = opacityPercent;
-  if (selectedFrame && !isNewFrameSelected) {
-    updateGrid(lastCells, lastPadding);
-  }
-}, 300); 
+  const debouncedUpdateColors = debounce((hexColors: string[], opacityPercent: string[]) => {
+    selectedColors = hexColors;
+    selectedOpacities = opacityPercent;
+    if (selectedFrame && !isNewFrameSelected) {
+      updateGrid(lastCells, lastPadding);
+    }
+  }, 300); 
 
-const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
-  updateGrid(cellCount, padding);
-}, 100);
+  const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
+    updateGrid(cellCount, padding);
+  }, 100);
 
   const initialIsFrameSelected = checkSelectionWithoutSideEffects();
   emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected: initialIsFrameSelected });
@@ -53,7 +66,6 @@ const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
       updateGrid(lastCells, lastPadding);
     }
   });
-
 
   on<GridHandler>('UPDATE_GRID', function({ cellCount, padding }) {
     if (isGridCreated && checkSelection()) {
@@ -81,14 +93,12 @@ const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
       const { possibleCounts, exactFitCounts } = getPossibleCellCounts(lastWidth, lastHeight, 300);
       console.log('from main exactFitCounts', exactFitCounts)
       
-    emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { possibleCellCounts: possibleCounts, exactFitCounts });
+      emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { possibleCellCounts: possibleCounts, exactFitCounts });
     }
   });
 
   on<ExactFitHandler>('EXACT_FIT', (data) => {
-    // Handle the exactFit change here
     console.log('Exact fit changed:', data.exactFit);
-    // Add your logic to handle the exact fit change
   });
 
   on<CellCountHandler>('CELL_COUNT_CHANGE', function({ cellCount }) {
@@ -101,12 +111,7 @@ const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
 
   on<UpdateColorsHandler>('UPDATE_COLORS', function({ hexColors, opacityPercent }) {
     debouncedUpdateColors(hexColors, opacityPercent);
-    // selectedColors = hexColors
-    // selectedOpacities = opacityPercent
-    // if (selectedFrame && !isNewFrameSelected) {
-    //   updateGrid(lastCells, lastPadding)
-    // }
-  })
+  });
 
   figma.on('selectionchange', () => {
     const isFrameSelected = checkSelectionWithoutSideEffects();
