@@ -30,8 +30,8 @@ function Plugin() {
   const [autoPopulate, setAutoPopulate] = useState<boolean>(false);
   const [isGridCreated, setIsGridCreated] = useState(true);
   const defaultColors = ['2a5256','cac578','c69a94','57b59c','b1371b'];
-  const [hexColors, setHexColors] = useState<string[]>(defaultColors);
-  const [opacityPercent, setOpacityPercent] = useState<string[]>(['100%','100%','100%','100%','100%']);
+  const [hexColors, setHexColors] = useState<string[]>([]);
+  const [opacityPercent, setOpacityPercent] = useState<string[]>([]);
   const [dropdownValue, setDropdownValue] = useState<null | string>(null);
   const [dropdownOptions, setDropdownOptions] = useState<Array<{ value: string }>>([{ value: '0' },]);
   const [exactFit, setExactFit] = useState<boolean>(false);
@@ -48,13 +48,9 @@ function Plugin() {
 
   const handleCellCountChange = (value: string) => {
     const numberValue = parseInt(value, 10);
-  
-  // Find the nearest value in steps
-  const nearestValue = steps.reduce((prev, curr) => {
-    return (Math.abs(curr - numberValue) < Math.abs(prev - numberValue) ? curr : prev);
-  }, steps[0]);
-
-  setCellCount(nearestValue);
+    const nearestValue = findClosestStep(numberValue);
+    setCellCount(nearestValue);
+    emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestValue.toString() });
   }
 
   const handlePaddingChange = (value: string) => {
@@ -68,6 +64,30 @@ function Plugin() {
       setIsEnabled(event.isFrameSelected);     
     });
   }, []);
+
+  useEffect(() => {
+    // Update hexColors and opacityPercent when cellCount changes
+    setHexColors(prevColors => {
+      const newColors = [...prevColors];
+      while (newColors.length < numColorPickers) {
+        newColors.push(defaultColors[newColors.length % defaultColors.length]);
+      }
+      return newColors.slice(0, numColorPickers);
+    });
+
+    setOpacityPercent(prevOpacities => {
+      const newOpacities = [...prevOpacities];
+      while (newOpacities.length < numColorPickers) {
+        newOpacities.push('100%');
+      }
+      return newOpacities.slice(0, numColorPickers);
+    });
+  }, [cellCount, numColorPickers]);
+
+  useEffect(() => {
+    // Emit color updates whenever hexColors or opacityPercent change
+    emit('UPDATE_COLORS', { hexColors, opacityPercent });
+  }, [hexColors, opacityPercent]);
 
   useEffect(() => {
     const handler = (event: { possibleCellCounts: number[], exactFitCounts: number[] } | undefined) => {
@@ -149,22 +169,21 @@ function Plugin() {
   };
 
   function handleHexColorInput(index:number, event: h.JSX.TargetedEvent<HTMLInputElement>) {
-    console.log('index',index,'value',event.currentTarget.value)
-    const newHexColor = [...hexColors]
-    newHexColor[index] = event.currentTarget.value;
-    console.log(newHexColor)
-    setHexColors(newHexColor);
-    debouncedUpdateColors(newHexColor, opacityPercent);
+    setHexColors(prevColors => {
+      const newColors = [...prevColors];
+      newColors[index] = event.currentTarget.value;
+      return newColors;
+    });
+    debouncedUpdateColors([...hexColors], [...opacityPercent]);
   }
 
   function handleOpacityInput(index:number, event: h.JSX.TargetedEvent<HTMLInputElement>) {
-    console.log('index',index,'value',event.currentTarget.value)
-    const newOpacity = [...opacityPercent]
-    newOpacity[index] = event.currentTarget.value;
-    console.log(newOpacity)
-    setOpacityPercent(newOpacity);
-    debouncedUpdateColors(hexColors, newOpacity);
-
+    setOpacityPercent(prevOpacities => {
+      const newOpacities = [...prevOpacities];
+      newOpacities[index] = event.currentTarget.value;
+      return newOpacities;
+    });
+    debouncedUpdateColors(hexColors, [...opacityPercent]);
   }
     
   const handleExactFitChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
@@ -209,11 +228,10 @@ function Plugin() {
   console.log('currentStepIndex', currentStepIndex)
 
   const findClosestStep = (value: number): number => {
-    if (steps.length === 0) return 0; // Return default if no steps
-
-    return steps.reduce((prev, curr) => {
-      return Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev;
-    });
+    if (steps.length === 0) return value; // Return the input value if no steps are available
+    return steps.reduce((prev, curr) => 
+      Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev
+    );
   };
 
   const minStep = steps.length > 0 ? Math.min(...steps) : 0; // Fallback to 0 if no steps
@@ -244,8 +262,8 @@ function Plugin() {
       {!isExactFitEnabled && <TextboxNumeric
           icon={<IconTidyGrid32 />}     
           variant='border'
-          maximum={300}
-          minimum={1}
+          maximum={Math.max(...steps, 300)} // Use the maximum of the largest step or 300
+          minimum={Math.min(...steps, 1)} // Use the minimum of the smallest step or 1
           onValueInput={handleCellCountChange}
           value={cellCount.toString()}
           disabled={isGridCreated} // Disable based on state
@@ -253,15 +271,16 @@ function Plugin() {
       {!isExactFitEnabled && <VerticalSpace space="small" />}
       <div>
       {!isExactFitEnabled && <RangeSlider
-        maximum={maxStep} // Use the calculated maximum value from the steps
-        minimum={minStep} // Use the calculated minimum value from the steps
+       maximum={Math.max(...steps, 300)} // Use the maximum of the largest step or 300
+       minimum={Math.min(...steps, 1)} // Use the minimum of the smallest step or 1
         value={cellCount.toString()}
         onValueInput={(value) => {
           const numericValue = parseInt(value, 10);
           const closestStep = findClosestStep(numericValue);
           setCellCount(closestStep);
+          emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: closestStep.toString() });
         }}
-        disabled={isGridCreated} // Disable based on state
+        disabled={isGridCreated}
       />}
       </div>
       
@@ -293,13 +312,13 @@ function Plugin() {
       <VerticalSpace space="small" />
       {autoPopulate && <div className="flex flex-col justify-between">
         {[...Array(numColorPickers)].map((_, index) => (
-            <ColorPicker
-              key={index}
-              color={hexColors[index] || defaultColors[index % defaultColors.length]}
-              opacity={opacityPercent[index] || '100%'}
-              handleHexColorInput={(event) => handleHexColorInput(index, event)}
-              handleOpacityInput={(event) => handleOpacityInput(index, event)}
-            />
+          <ColorPicker
+          key={index}
+          color={hexColors[index] || defaultColors[index % defaultColors.length]}
+          opacity={opacityPercent[index] || '100%'}
+          handleHexColorInput={(event) => handleHexColorInput(index, event)}
+          handleOpacityInput={(event) => handleOpacityInput(index, event)}
+        />
           ))}
       </div>}
       
