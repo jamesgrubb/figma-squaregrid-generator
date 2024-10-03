@@ -311,14 +311,16 @@ function Plugin() {
         disabled={isGridCreated} // Disable based on state
       />
       <VerticalSpace space="large" />
-      
-      <Toggle onChange={handleAutoPopulateChange} value={autoPopulate}>
-      <VerticalSpace space="small" />
-      <Toggle value={randomizeColors} onValueChange={setRandomizeColors}>
-        Randomize colors after 5
-      </Toggle>
-      <Text>Fill Grid</Text>
+      <Columns space="small">
+  <Toggle onChange={handleAutoPopulateChange} value={autoPopulate}>
+    <Text>Fill frames</Text>
+  </Toggle>
+  {autoPopulate && cellCount > 5 && (
+    <Toggle value={randomizeColors} onValueChange={setRandomizeColors}>
+      <Text>Randomize</Text>
     </Toggle>
+  )}
+</Columns>
       <VerticalSpace space="small" />
       {autoPopulate && <div className="flex flex-col justify-between">
         {[...Array(numColorPickers)].map((_, index) => (
