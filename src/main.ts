@@ -46,11 +46,11 @@ export default function () {
     if (selectedFrame && !isNewFrameSelected) {
       updateGrid(lastCells, lastPadding);
     }
-  }, 300); 
+  }, 50); 
 
   const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
     updateGrid(cellCount, padding);
-  }, 100);
+  }, 50);
 
   const initialIsFrameSelected = checkSelectionWithoutSideEffects();
   emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected: initialIsFrameSelected });
