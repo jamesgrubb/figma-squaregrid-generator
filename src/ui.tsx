@@ -77,14 +77,9 @@ function Plugin() {
         
         if (event.exactFitCounts.length > 0) {
           setExactFit(true);
-          if (event.exactFitCounts.length === 1) {
-            setExactFitCount(event.exactFitCounts[0]);
-            setShowDropdown(false);
-          } else {
-            setDropdownOptions(event.exactFitCounts.map(cellCount => ({ value: cellCount.toString() })));
-            setDropdownValue(event.exactFitCounts[0].toString());
-            setExactFitCount(null);
-          }
+          setDropdownOptions(event.exactFitCounts.map(cellCount => ({ value: cellCount.toString() })));
+          setDropdownValue(event.exactFitCounts[0].toString());
+          setExactFitCount(event.exactFitCounts.length === 1 ? event.exactFitCounts[0] : null);
         } else {
           setDropdownOptions([{value: 'No exact fits'}]);
           setDropdownValue('No exact fits');
