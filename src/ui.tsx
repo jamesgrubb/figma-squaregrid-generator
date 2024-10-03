@@ -286,11 +286,8 @@ function Plugin() {
       <VerticalSpace space="large" />
       
       <Toggle onChange={handleAutoPopulateChange} value={autoPopulate}>
-      <Text>Auto-Fill</Text>
+      <Text>Fill Grid</Text>
     </Toggle>
-      
-      <VerticalSpace space="large" />
-      <Text>Fill Colors</Text>
       <VerticalSpace space="small" />
       {autoPopulate && <div className="flex flex-col justify-between">
       {defaultColors.map((_,index)=>{
