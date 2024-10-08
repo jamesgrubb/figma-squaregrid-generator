@@ -30,8 +30,8 @@ function Plugin() {
   const [autoPopulate, setAutoPopulate] = useState<boolean>(false);
   const [isGridCreated, setIsGridCreated] = useState(true);
   const defaultColors = ['2a5256','cac578','c69a94','57b59c','b1371b'];
-  const [hexColors, setHexColors] = useState<string[]>([]);
-  const [opacityPercent, setOpacityPercent] = useState<string[]>([]);
+  const [hexColors, setHexColors] = useState<string[]>(() => defaultColors.slice(0, 5));
+  const [opacityPercent, setOpacityPercent] = useState<string[]>(() => Array(5).fill('100%'));
   const [dropdownValue, setDropdownValue] = useState<null | string>(null);
   const [dropdownOptions, setDropdownOptions] = useState<Array<{ value: string }>>([{ value: '0' },]);
   const [exactFit, setExactFit] = useState<boolean>(false);
@@ -42,10 +42,24 @@ function Plugin() {
   
   const numColorPickers = Math.min(cellCount, 5);
 
+  const updateColors = (newHexColors: string[], newOpacityPercent: string[]) => {
+    console.log('updateColors called with:', { newHexColors, newOpacityPercent });
+    emit<UpdateColorsHandler>('UPDATE_COLORS', { hexColors: newHexColors, opacityPercent: newOpacityPercent });
+  };
+
+
   useEffect(() => {
     emit('UPDATE_GRID', { cellCount, padding })
-    emit('UPDATE_COLORS', { hexColors, opacityPercent })
+   
+    console.log('Emitting UPDATE_GRID and UPDATE_COLORS');
   }, [cellCount, padding, hexColors, opacityPercent])
+
+  useEffect(() => {
+    console.log('Color effect running. hexColors:', hexColors, 'opacityPercent:', opacityPercent);
+    if (hexColors.length > 0 && opacityPercent.length > 0) {
+      updateColors(hexColors, opacityPercent);
+    }
+  }, [hexColors, opacityPercent]);
 
   const handleCellCountChange = (value: string) => {
     const numberValue = parseInt(value, 10);
@@ -57,7 +71,12 @@ function Plugin() {
   const handlePaddingChange = (value: string) => {
     setPadding(parseInt(value, 10))
   }
-
+  const findClosestStep = (value: number): number => {
+    if (steps.length === 0) return value; // Return the input value if no steps are available
+    return steps.reduce((prev, curr) => 
+      Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev
+    );
+  };
   
   console.log(isEnabled)
 
@@ -67,9 +86,10 @@ function Plugin() {
 
   useEffect(() => {   
     on<FrameSelectionHandler>('FRAME_SELECTED', (event) => {
+       console.log('Frame selected event received:', event);
       setIsEnabled(event.isFrameSelected);     
     });
-  }, []);
+  }, [isEnabled]);
 
   useEffect(() => {
     // Update hexColors and opacityPercent when cellCount changes
@@ -96,7 +116,7 @@ function Plugin() {
   }, [hexColors, opacityPercent]);
 
   useEffect(() => {
-    const handler = (event: { possibleCellCounts: number[], exactFitCounts: number[] } | undefined) => {
+    const cellCountHandler = (event: { possibleCellCounts: number[], exactFitCounts: number[] } | undefined) => {
       if (event?.possibleCellCounts && Array.isArray(event.possibleCellCounts) && event.possibleCellCounts.length > 0) {
         console.log('Received possible cell counts:', event.possibleCellCounts);
         console.log('Received exact fit cell counts:', event.exactFitCounts);
@@ -128,30 +148,38 @@ function Plugin() {
         }
       }
     }
-
-    on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', handler);
-    on<UpdateColorsHandler>('UPDATE_COLORS', (event) => {
-      // setHexColors(event.hexColors);
-      // setOpacityPercent(event.opacityPercent);
-    });
-    // Clean up the event listener on component unmount
+  
+    on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', cellCountHandler);
+    
+  
+    // Clean up the event listeners on component unmount
     return () => {
-      // You might need to use a method to remove the listener if applicable
+      // Remove the event listeners
+      // You might need to use a method provided by your event system to remove listeners
+      // For example:
+      // off('POSSIBLE_CELL_COUNTS', cellCountHandler);
+      // off('COLORS_UPDATED', colorUpdateHandler);
     };
-    // on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', (event) => {
-    //   setSteps(event.possibleCellCounts);
-    // });
-  }, [cellCount,isExactFitEnabled]);
+  }, [cellCount, isExactFitEnabled, findClosestStep]);
 
+  
+
+useEffect(() => {
+  on<UpdateColorsHandler>('UPDATE_COLORS', colorUpdateHandler);
+  
+  return () => {
+    // Clean up the event listener
+    // You might need to use a method provided by your event system to remove listeners
+    // For example: off('UPDATE_COLORS', colorUpdateHandler);
+  };
+}, []);
 
   console.log('dropdown values',dropdownValue)
   const debouncedUpdateColors = debounce((newHexColors: string[], newOpacityPercent: string[]) => {
+    console.log('Debounced UPDATE_COLORS called with:', { newHexColors, newOpacityPercent });
     emit('UPDATE_COLORS', { hexColors: newHexColors, opacityPercent: newOpacityPercent });
-  }, 1000);
+  }, 300);
 
-  useEffect(() => {
-    console.log(steps)
-  }, [steps])
 
   const handleDropdownCellCountChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
     const target = event.currentTarget as HTMLInputElement;
@@ -170,24 +198,46 @@ function Plugin() {
     emit<AutoPopulateHandler>('AUTO_POPULATE', { autoPopulate: newValue });
   };
 
-  function handleHexColorInput(index:number, event: h.JSX.TargetedEvent<HTMLInputElement>) {
+  function handleHexColorInput(index: number, event: h.JSX.TargetedEvent<HTMLInputElement>) {
+    const newColor = event.currentTarget.value;
     setHexColors(prevColors => {
       const newColors = [...prevColors];
-      newColors[index] = event.currentTarget.value;
+      newColors[index] = newColor;
       return newColors;
     });
-    debouncedUpdateColors([...hexColors], [...opacityPercent]);
   }
 
-  function handleOpacityInput(index:number, event: h.JSX.TargetedEvent<HTMLInputElement>) {
+  function handleOpacityInput(index: number, event: h.JSX.TargetedEvent<HTMLInputElement>) {
+    const newOpacity = event.currentTarget.value;
     setOpacityPercent(prevOpacities => {
       const newOpacities = [...prevOpacities];
-      newOpacities[index] = event.currentTarget.value;
+      newOpacities[index] = newOpacity;
       return newOpacities;
     });
-    debouncedUpdateColors(hexColors, [...opacityPercent]);
   }
-    
+
+  const colorUpdateHandler = (event: { hexColors: string[], opacityPercent: string[] }) => {
+    console.log('Received color update:', event);
+    console.log('Current state before update:', { hexColors, opacityPercent });
+
+    if (event.hexColors.length === 0 && event.opacityPercent.length === 0) {
+      console.log('Received empty arrays, skipping update');
+      return;
+    }
+
+    // Only update if the new colors are different from the current state
+    if (JSON.stringify(event.hexColors) !== JSON.stringify(hexColors) ||
+        JSON.stringify(event.opacityPercent) !== JSON.stringify(opacityPercent)) {
+      console.log('Updating colors');
+      setHexColors(event.hexColors);
+      setOpacityPercent(event.opacityPercent);
+    } else {
+      console.log('No change in colors, skipping update');
+    }
+  }
+  // ... rest of your component code
+
+  
   const handleExactFitChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
     const target = event.currentTarget as HTMLInputElement;
     const newValue = target?.checked;
@@ -229,15 +279,15 @@ function Plugin() {
   const currentStepIndex = steps.indexOf(cellCount);
   console.log('currentStepIndex', currentStepIndex)
 
-  const findClosestStep = (value: number): number => {
-    if (steps.length === 0) return value; // Return the input value if no steps are available
-    return steps.reduce((prev, curr) => 
-      Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev
-    );
-  };
+
 
   const minStep = steps.length > 0 ? Math.min(...steps) : 0; // Fallback to 0 if no steps
   const maxStep = steps.length > 0 ? Math.max(...steps) : 300; // Fallback to 300 if no steps
+
+  useEffect(() => {
+    console.log('Color effect running. hexColors:', hexColors, 'opacityPercent:', opacityPercent);
+    debouncedUpdateColors(hexColors, opacityPercent);
+  }, [hexColors, opacityPercent]);
 
   return (
     <div className="relative h-full text-balance">

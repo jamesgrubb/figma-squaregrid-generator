@@ -28,7 +28,7 @@ let isGridCreated: boolean = false;
 let selectedColors: string[] = ['2a5256','cac578','c69a94','57b59c','b1371b'];
 let selectedOpacities: string[] = ['100%','100%','100%','100%','100%'];
 let randomizeColors: boolean = false;
-
+let lastEmittedColors: { hexColors: string[], opacityPercent: string[] } | null = null;
 export default function () {
   showUI({
     height: 280,
@@ -41,12 +41,14 @@ export default function () {
   };
 
   const debouncedUpdateColors = debounce((hexColors: string[], opacityPercent: string[]) => {
-    selectedColors = hexColors;
-    selectedOpacities = opacityPercent;
+    selectedColors = [...hexColors];
+    selectedOpacities = [...opacityPercent];
     if (selectedFrame && !isNewFrameSelected) {
       updateGrid(lastCells, lastPadding);
     }
-  }, 50); 
+    // Emit the updated colors back to the UI
+    emit<UpdateColorsHandler>('UPDATE_COLORS', { hexColors: selectedColors, opacityPercent: selectedOpacities });
+  }, 50);
 
   const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
     updateGrid(cellCount, padding);
@@ -108,9 +110,19 @@ export default function () {
       lastCells = numericCellCount;
     }
   });
+  
 
   on<UpdateColorsHandler>('UPDATE_COLORS', function({ hexColors, opacityPercent }) {
-    debouncedUpdateColors(hexColors, opacityPercent);
+    console.log('UPDATE_COLORS received in main thread:', { hexColors, opacityPercent });
+    
+    // Only emit if the colors have changed
+    if (JSON.stringify({ hexColors, opacityPercent }) !== JSON.stringify(lastEmittedColors)) {
+      console.log('Colors changed, emitting update');
+      lastEmittedColors = { hexColors, opacityPercent };
+      emit<UpdateColorsHandler>('UPDATE_COLORS', { hexColors, opacityPercent });
+    } else {
+      console.log('No change in colors, skipping emit');
+    }
   });
 
   figma.on('selectionchange', () => {
