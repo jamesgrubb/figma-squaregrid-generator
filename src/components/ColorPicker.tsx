@@ -7,7 +7,7 @@ export const ColorPicker = ({ color, opacity,  handleHexColorInput, handleOpacit
     
   return (
    
-    <TextboxColor hexColor={color} opacity={opacity} onHexColorInput={handleHexColorInput} onOpacityInput={handleOpacityInput} variant="underline" />
+    <TextboxColor  hexColor={color} opacity={opacity} onHexColorInput={handleHexColorInput} onOpacityInput={handleOpacityInput} variant="underline" />
    
    
   )
