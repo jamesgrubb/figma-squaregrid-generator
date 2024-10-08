@@ -43,9 +43,9 @@ export default function () {
   const debouncedUpdateColors = debounce((hexColors: string[], opacityPercent: string[]) => {
     console.log('Debounced update colors:', { hexColors, opacityPercent });
     
-    // Only update if the colors have changed
-    if (JSON.stringify({ hexColors, opacityPercent }) !== JSON.stringify(lastEmittedColors)) {
-      console.log('Colors changed, applying to nodes');
+    // Always update if colors have changed or randomization state has changed
+    if (JSON.stringify({ hexColors, opacityPercent }) !== JSON.stringify(lastEmittedColors) || randomizeColors) {
+      console.log('Colors or randomization changed, applying to nodes');
       lastEmittedColors = { hexColors, opacityPercent };
       
       // Update the selected colors and opacities
@@ -53,14 +53,14 @@ export default function () {
       selectedOpacities = opacityPercent;
       
       // Apply colors to your Figma nodes here
-      if (selectedFrame && !isNewFrameSelected && autoPopulate) {
+      if (selectedFrame && autoPopulate) {
         applyColorsToNodes(hexColors, opacityPercent);
       }
       
-      // Then emit the update back to the UI
-      emit<UpdateColorsHandler>('UPDATE_COLORS', { hexColors, opacityPercent });
+      // Remove this line to prevent the infinite loop
+      // emit<UpdateColorsHandler>('UPDATE_COLORS', { hexColors, opacityPercent });
     } else {
-      console.log('No change in colors, skipping update');
+      console.log('No change in colors or randomization, skipping update');
     }
   }, 50);
 
@@ -77,9 +77,13 @@ export default function () {
   });
 
   on<RandomizeColorsHandler>('RANDOMIZE_COLORS', function({ randomize }) {
+    console.log('Randomize colors changed to:', randomize);
     randomizeColors = randomize;
-    if (selectedFrame && !isNewFrameSelected && autoPopulate) {
+    if (selectedFrame && autoPopulate) {
+      console.log('Forcing re-application of colors due to randomize change');
       applyColorsToNodes(selectedColors, selectedOpacities);
+      // Remove this line to prevent potential loops
+      // emit<UpdateColorsHandler>('UPDATE_COLORS', { hexColors: selectedColors, opacityPercent: selectedOpacities });
     }
   });
 
@@ -126,32 +130,49 @@ export default function () {
   });
   
   function applyColorsToNodes(hexColors: string[], opacityPercent: string[]) {
-    if (!selectedFrame) return;
+    if (!selectedFrame) {
+      console.log('No selected frame, cannot apply colors');
+      return;
+    }
   
     const gridFrame = selectedFrame.findChild(n => n.name === 'GridFrame') as FrameNode | null;
-    if (!gridFrame) return;
+    if (!gridFrame) {
+      console.log('No GridFrame found, cannot apply colors');
+      return;
+    }
   
     const cells = gridFrame.findChildren(n => n.type === 'FRAME');
-    let colorOrder = Array.from({ length: hexColors.length }, (_, i) => i);
+    console.log(`Applying colors to ${cells.length} cells`);
+    
+    // Create a color order array based on the number of cells
+    let colorOrder = Array.from({ length: cells.length }, (_, i) => i % hexColors.length);
+    
     if (randomizeColors) {
+      console.log('Randomizing colors');
       colorOrder = colorOrder.sort(() => Math.random() - 0.5);
+    } else {
+      console.log('Not randomizing colors');
     }
+  
+    console.log('Color order:', colorOrder);
   
     cells.forEach((cell, index) => {
       if ('fills' in cell) {
-        const colorIndex = colorOrder[index % hexColors.length];
+        const colorIndex = colorOrder[index];
         const opacityValue = parseFloat(opacityPercent[colorIndex]);
+        const newColor = hexToRgb(hexColors[colorIndex]);
         cell.fills = [{
           type: 'SOLID',
-          color: hexToRgb(hexColors[colorIndex]),
+          color: newColor,
           opacity: isNaN(opacityValue) ? 1 : opacityValue / 100
         }];
+        console.log(`Cell ${index}: Applied color ${hexColors[colorIndex]} with opacity ${opacityValue}`);
       }
     });
   }
 
   on<UpdateColorsHandler>('UPDATE_COLORS', function({ hexColors, opacityPercent }) {
-    console.log('UPDATE_COLORS received in main thread:', { hexColors, opacityPercent });    
+    console.log('UPDATE_COLORS received in main thread:', { hexColors, opacityPercent });
     debouncedUpdateColors(hexColors, opacityPercent);
   });
 

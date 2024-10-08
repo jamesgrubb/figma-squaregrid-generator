@@ -165,7 +165,14 @@ function Plugin() {
   
 
 useEffect(() => {
-  on<UpdateColorsHandler>('UPDATE_COLORS', colorUpdateHandler);
+  on<UpdateColorsHandler>('UPDATE_COLORS', function({ hexColors, opacityPercent }) {
+    // Only update the state if the colors have actually changed
+    if (JSON.stringify(hexColors) !== JSON.stringify(hexColors) ||
+        JSON.stringify(opacityPercent) !== JSON.stringify(opacityPercent)) {
+      setHexColors(hexColors);
+      setOpacityPercent(opacityPercent);
+    }
+  });
   
   return () => {
     // Clean up the event listener
@@ -218,33 +225,6 @@ useEffect(() => {
     });
   }
 
-  const colorUpdateHandler = (event: { hexColors: string[], opacityPercent: string[] }) => {
-    console.log('Received color update:', event);
-    console.log('Current state before update:', { hexColors, opacityPercent });
-  
-    if (event.hexColors.length === 0 && event.opacityPercent.length === 0) {
-      console.log('Received empty arrays, skipping update');
-      return;
-    }
-  
-    // Only update if the new colors are different from the current state
-    if (JSON.stringify(event.hexColors) !== JSON.stringify(hexColors) ||
-        JSON.stringify(event.opacityPercent) !== JSON.stringify(opacityPercent)) {
-      console.log('Updating colors');
-      setHexColors(prevColors => {
-        console.log('Previous hexColors:', prevColors);
-        console.log('New hexColors:', event.hexColors);
-        return event.hexColors;
-      });
-      setOpacityPercent(prevOpacities => {
-        console.log('Previous opacityPercent:', prevOpacities);
-        console.log('New opacityPercent:', event.opacityPercent);
-        return event.opacityPercent;
-      });
-    } else {
-      console.log('No change in colors, skipping update');
-    }
-  }
   // ... rest of your component code
 
   
