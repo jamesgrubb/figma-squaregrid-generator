@@ -203,6 +203,7 @@ useEffect(() => {
     setHexColors(prevColors => {
       const newColors = [...prevColors];
       newColors[index] = newColor;
+      console.log('New hexColors after input:', newColors);
       return newColors;
     });
   }
@@ -212,6 +213,7 @@ useEffect(() => {
     setOpacityPercent(prevOpacities => {
       const newOpacities = [...prevOpacities];
       newOpacities[index] = newOpacity;
+      console.log('New opacityPercent after input:', newOpacities);
       return newOpacities;
     });
   }
@@ -219,18 +221,26 @@ useEffect(() => {
   const colorUpdateHandler = (event: { hexColors: string[], opacityPercent: string[] }) => {
     console.log('Received color update:', event);
     console.log('Current state before update:', { hexColors, opacityPercent });
-
+  
     if (event.hexColors.length === 0 && event.opacityPercent.length === 0) {
       console.log('Received empty arrays, skipping update');
       return;
     }
-
+  
     // Only update if the new colors are different from the current state
     if (JSON.stringify(event.hexColors) !== JSON.stringify(hexColors) ||
         JSON.stringify(event.opacityPercent) !== JSON.stringify(opacityPercent)) {
       console.log('Updating colors');
-      setHexColors(event.hexColors);
-      setOpacityPercent(event.opacityPercent);
+      setHexColors(prevColors => {
+        console.log('Previous hexColors:', prevColors);
+        console.log('New hexColors:', event.hexColors);
+        return event.hexColors;
+      });
+      setOpacityPercent(prevOpacities => {
+        console.log('Previous opacityPercent:', prevOpacities);
+        console.log('New opacityPercent:', event.opacityPercent);
+        return event.opacityPercent;
+      });
     } else {
       console.log('No change in colors, skipping update');
     }
@@ -369,15 +379,15 @@ useEffect(() => {
 </Columns>
       <VerticalSpace space="small" />
       {autoPopulate && <div className="flex flex-col justify-between">
-        {[...Array(numColorPickers)].map((_, index) => (
-          <ColorPicker
-          key={index}
-          color={hexColors[index] || defaultColors[index % defaultColors.length]}
-          opacity={opacityPercent[index] || '100%'}
-          handleHexColorInput={(event) => handleHexColorInput(index, event)}
-          handleOpacityInput={(event) => handleOpacityInput(index, event)}
-        />
-          ))}
+  {[...Array(numColorPickers)].map((_, index) => (
+    <ColorPicker
+      key={index}
+      color={hexColors[index] || defaultColors[index % defaultColors.length]}
+      opacity={opacityPercent[index] || '100%'}
+      handleHexColorInput={(event) => handleHexColorInput(index, event)}
+      handleOpacityInput={(event) => handleOpacityInput(index, event)}
+    />
+  ))}
       </div>}
       
     </Container>}

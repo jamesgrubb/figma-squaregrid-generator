@@ -41,13 +41,27 @@ export default function () {
   };
 
   const debouncedUpdateColors = debounce((hexColors: string[], opacityPercent: string[]) => {
-    selectedColors = [...hexColors];
-    selectedOpacities = [...opacityPercent];
-    if (selectedFrame && !isNewFrameSelected) {
-      updateGrid(lastCells, lastPadding);
+    console.log('Debounced update colors:', { hexColors, opacityPercent });
+    
+    // Only update if the colors have changed
+    if (JSON.stringify({ hexColors, opacityPercent }) !== JSON.stringify(lastEmittedColors)) {
+      console.log('Colors changed, applying to nodes');
+      lastEmittedColors = { hexColors, opacityPercent };
+      
+      // Update the selected colors and opacities
+      selectedColors = hexColors;
+      selectedOpacities = opacityPercent;
+      
+      // Apply colors to your Figma nodes here
+      if (selectedFrame && !isNewFrameSelected && autoPopulate) {
+        applyColorsToNodes(hexColors, opacityPercent);
+      }
+      
+      // Then emit the update back to the UI
+      emit<UpdateColorsHandler>('UPDATE_COLORS', { hexColors, opacityPercent });
+    } else {
+      console.log('No change in colors, skipping update');
     }
-    // Emit the updated colors back to the UI
-    emit<UpdateColorsHandler>('UPDATE_COLORS', { hexColors: selectedColors, opacityPercent: selectedOpacities });
   }, 50);
 
   const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
@@ -64,8 +78,8 @@ export default function () {
 
   on<RandomizeColorsHandler>('RANDOMIZE_COLORS', function({ randomize }) {
     randomizeColors = randomize;
-    if (selectedFrame && !isNewFrameSelected) {
-      updateGrid(lastCells, lastPadding);
+    if (selectedFrame && !isNewFrameSelected && autoPopulate) {
+      applyColorsToNodes(selectedColors, selectedOpacities);
     }
   });
 
@@ -111,18 +125,34 @@ export default function () {
     }
   });
   
+  function applyColorsToNodes(hexColors: string[], opacityPercent: string[]) {
+    if (!selectedFrame) return;
+  
+    const gridFrame = selectedFrame.findChild(n => n.name === 'GridFrame') as FrameNode | null;
+    if (!gridFrame) return;
+  
+    const cells = gridFrame.findChildren(n => n.type === 'FRAME');
+    let colorOrder = Array.from({ length: hexColors.length }, (_, i) => i);
+    if (randomizeColors) {
+      colorOrder = colorOrder.sort(() => Math.random() - 0.5);
+    }
+  
+    cells.forEach((cell, index) => {
+      if ('fills' in cell) {
+        const colorIndex = colorOrder[index % hexColors.length];
+        const opacityValue = parseFloat(opacityPercent[colorIndex]);
+        cell.fills = [{
+          type: 'SOLID',
+          color: hexToRgb(hexColors[colorIndex]),
+          opacity: isNaN(opacityValue) ? 1 : opacityValue / 100
+        }];
+      }
+    });
+  }
 
   on<UpdateColorsHandler>('UPDATE_COLORS', function({ hexColors, opacityPercent }) {
-    console.log('UPDATE_COLORS received in main thread:', { hexColors, opacityPercent });
-    
-    // Only emit if the colors have changed
-    if (JSON.stringify({ hexColors, opacityPercent }) !== JSON.stringify(lastEmittedColors)) {
-      console.log('Colors changed, emitting update');
-      lastEmittedColors = { hexColors, opacityPercent };
-      emit<UpdateColorsHandler>('UPDATE_COLORS', { hexColors, opacityPercent });
-    } else {
-      console.log('No change in colors, skipping emit');
-    }
+    console.log('UPDATE_COLORS received in main thread:', { hexColors, opacityPercent });    
+    debouncedUpdateColors(hexColors, opacityPercent);
   });
 
   figma.on('selectionchange', () => {
@@ -273,25 +303,24 @@ function updateGrid(cells: number, padding: number) {
 
   if (autoPopulate) {
     const existingCells = gridFrame.findChildren(n => n.type === 'FRAME');
-    let colorIndex = 0;
     let colorOrder = Array.from({ length: selectedColors.length }, (_, i) => i);
+    if (randomizeColors) {
+      colorOrder = colorOrder.sort(() => Math.random() - 0.5);
+    }
     console.log('colorOrder', colorOrder);
-    const applyColor = (cell: SceneNode) => {
+  
+    const applyColor = (cell: SceneNode, index: number) => {
       if ('fills' in cell) {
-        const currentColorIndex = colorOrder[colorIndex];
-        const opacityValue = parseFloat(selectedOpacities[currentColorIndex]);
+        const colorIndex = colorOrder[index % selectedColors.length];
+        const opacityValue = parseFloat(selectedOpacities[colorIndex]);
         cell.fills = [{
           type: 'SOLID',
-          color: hexToRgb(selectedColors[currentColorIndex]),
+          color: hexToRgb(selectedColors[colorIndex]),
           opacity: isNaN(opacityValue) ? 1 : opacityValue / 100
         }];
       }
-      
-      colorIndex = (colorIndex + 1) % selectedColors.length;
-      if (randomizeColors && colorIndex === 0) {
-        colorOrder = colorOrder.sort(() => Math.random() - 0.5);
-      }
     };
+  
     if (existingCells.length === 0) {
       for (let i = 0; i < nrows; i++) {
         for (let j = 0; j < ncols; j++) {
@@ -299,12 +328,12 @@ function updateGrid(cells: number, padding: number) {
           cell.resize(cell_size, cell_size);
           cell.x = j * cell_size;
           cell.y = i * cell_size;
-          applyColor(cell);
+          applyColor(cell, i * ncols + j);
           gridFrame.appendChild(cell);          
         }
       }
     } else {
-      existingCells.forEach(applyColor);
+      existingCells.forEach((cell, index) => applyColor(cell, index));
     }
   }
 
