@@ -100,6 +100,7 @@ export default function () {
     if (selectedFrame && !isNewFrameSelected) {
       updateGrid(lastCells, lastPadding);
     }
+    figma.ui.resize(240, autoPopulate ? 370 : 280);
   });
 
   on<CreateGridHandler>('CREATE_GRID', function({ cellCount, padding }) {
@@ -381,17 +382,7 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
     : { r: 0, g: 0, b: 0 };
 }
 
-function generateGreyRedColor(): { r: number, g: number, b: number } {
-  const isGrey = Math.random() < 0.7;
 
-  if (isGrey) {
-    const value = Math.random() * 0.8 + 0.1;
-    return { r: 0.1, g: 0, b: value };
-  } else {
-    const value = Math.random() * 0.6 + 0.4;
-    return { r: 0.5, g: 0, b: value };
-  }
-}
 
 function getPossibleCellCounts(width: number, height: number, maxCells: number): {possibleCounts: number[], exactFitCounts: number[]} {
   const possibleCounts: number[] = [];

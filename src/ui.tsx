@@ -349,11 +349,11 @@ useEffect(() => {
       <VerticalSpace space="large" />
       <Columns space="small">
   <Toggle onChange={handleAutoPopulateChange} value={autoPopulate}>
-    <Text>Fill frames</Text>
+    <Text>Fill</Text>
   </Toggle>
   {autoPopulate && cellCount > 5 && (
     <Toggle value={randomizeColors} onValueChange={setRandomizeColors}>
-      <Text>Randomize</Text>
+      <Text>Random Pattern</Text>
     </Toggle>
   )}
 </Columns>
@@ -377,7 +377,7 @@ useEffect(() => {
     
     <Text className="h-min"><Muted>This tool lets you create a customizable grid by setting the number of cells and padding. Adjust the values using the sliders or type directly, with inputs snapping to valid options. Start by selecting or creating a frame, then click "Create Grid" to unlock the settings. You can also enable the auto-fill option for easier grid population.</Muted></Text>
     <Button className="" disabled={!isEnabled} fullWidth onClick={handleCreateGrid}>Get Started</Button>
-      {!isEnabled && <div className="absolute bottom-0 left-0 right-0 z-10"><Banner icon={<IconWarning32 />} variant="warning">      
+      {!isEnabled && <div className="z-10"><Banner icon={<IconWarning32 />} variant="warning">      
       Please select or create a frame to begin
     </Banner></div>}
     
