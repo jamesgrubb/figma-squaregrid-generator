@@ -1,0 +1,10 @@
+{
+  "api": "1.0.0",
+  "editorType": [
+    "figma"
+  ],
+  "id": "preact-tailwindcss",
+  "name": "You're so square",
+  "main": "build/main.js",
+  "ui": "build/ui.js"
+}
