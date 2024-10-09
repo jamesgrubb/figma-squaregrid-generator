@@ -373,16 +373,31 @@ useEffect(() => {
     </Container>}
      
       
-    {isGridCreated && <Container className="absolute inset-0 flex flex-col gap-4 p-4" space="medium">    
-    { isEnabled && <div> <Text className="h-min"><Muted>This tool lets you create a customizable grid by setting the number of cells and padding. Adjust the values using the sliders or type directly, with inputs snapping to valid options. Start by selecting or creating a frame, then click "Create Grid" to unlock the settings. You can also enable the auto-fill option for easier grid population.</Muted></Text>
-    <Button className="" disabled={!isEnabled} fullWidth onClick={handleCreateGrid}>Get Started</Button> </div>}
-    </Container>}
-    {isGridCreated && <Container className="grid items-end h-full p-4" space="medium">
-    
-      {!isEnabled && <div className="z-10 backdrop-blur"><Banner className="" icon={<IconWarning32 />} variant="warning">      
-      Please select or create a frame to begin
-    </Banner></div>}
-    </Container>}
+    {isGridCreated && (
+        <Container className="absolute inset-0 flex flex-col justify-between p-4" space="medium">    
+          <div>
+            <Text className="h-min">
+              <Muted>This tool lets you create a customizable grid by setting the number of cells and padding. Adjust the values using the sliders or type directly, with inputs snapping to valid options. Start by selecting or creating a frame, then click "Create Grid" to unlock the settings. You can also enable the auto-fill option for easier grid population.</Muted>
+            </Text>
+          </div>
+          
+          {isEnabled ? (
+            <Button 
+              className="mt-4" 
+              fullWidth 
+              onClick={handleCreateGrid}
+            >
+              Create Grid
+            </Button>
+          ) : (
+            <div className="z-10 rounded-md overflow-clip">
+              <Banner icon={<IconWarning32 />} variant="warning">      
+                Please select or create a frame to begin
+              </Banner>
+            </div>
+          )}
+        </Container>
+      )}
     </div>
     
   )
