@@ -17,7 +17,11 @@ export interface FrameSelectionHandler {
 
 export interface PossibleCellCountsHandler {
   name: 'POSSIBLE_CELL_COUNTS'
-  handler: (counts: { possibleCellCounts: number[], exactFitCounts: number[] }) => void
+  handler: (counts: {
+    possibleCellCounts: number[]
+    exactFitCounts: number[]
+    evenGridCounts: number[]
+  }) => void
 }
 
 export interface CreateGridHandler {
@@ -53,4 +57,9 @@ export interface SinglePerfectFitHandler extends EventHandler {
 export interface RandomizeColorsHandler {
   name: 'RANDOMIZE_COLORS'
   handler: (data: { randomize: boolean }) => void
+}
+
+export interface EvenGridHandler {
+  name: 'EVEN_GRID'
+  handler: (options: { evenGrid: boolean }) => void
 }

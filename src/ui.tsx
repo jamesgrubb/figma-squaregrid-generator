@@ -39,6 +39,8 @@ function Plugin() {
   const [exactFitCount, setExactFitCount] = useState<number | null>(null);
   const [isExactFitEnabled, setIsExactFitEnabled] = useState(false);
   const [randomizeColors, setRandomizeColors] = useState(false)
+  const [evenFitsOnly, setEvenFitsOnly] = useState<boolean>(false);
+  const [originalExactFits, setOriginalExactFits] = useState<number[]>([]);
   
   const numColorPickers = Math.min(cellCount, 5);
 
@@ -72,8 +74,13 @@ function Plugin() {
     setPadding(parseInt(value, 10))
   }
   const findClosestStep = (value: number): number => {
-    if (steps.length === 0) return value; // Return the input value if no steps are available
-    return steps.reduce((prev, curr) => 
+    if (steps.length === 0) return value;
+    
+    const validSteps = evenFitsOnly 
+      ? steps.filter(step => step % 2 === 0)
+      : steps;
+    
+    return validSteps.reduce((prev, curr) => 
       Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev
     );
   };
@@ -116,70 +123,89 @@ function Plugin() {
   }, [hexColors, opacityPercent]);
 
   useEffect(() => {
-    const cellCountHandler = (event: { possibleCellCounts: number[], exactFitCounts: number[] } | undefined) => {
-      if (event?.possibleCellCounts && Array.isArray(event.possibleCellCounts) && event.possibleCellCounts.length > 0) {
-        console.log('Received possible cell counts:', event.possibleCellCounts);
-        console.log('Received exact fit cell counts:', event.exactFitCounts);
-        
-        setSteps(event.possibleCellCounts);
-        
-        if (event.exactFitCounts.length > 0) {
-          setExactFit(true);
-          setDropdownOptions(event.exactFitCounts.map(cellCount => ({ value: cellCount.toString() })));
-          setDropdownValue(event.exactFitCounts[0].toString());
-          setExactFitCount(event.exactFitCounts.length === 1 ? event.exactFitCounts[0] : null);
-          setShowDropdown(isExactFitEnabled); // Show dropdown only if exact fit is enabled
-        } else {
-          setExactFit(false);
-          setDropdownOptions([]);
-          setDropdownValue(null);
-          setExactFitCount(null);
-          setShowDropdown(false); // Hide dropdown when there are no exact fits
-          setIsExactFitEnabled(false); // Disable exact fit toggle
-        }
-        
-        // Set initial cell count only if it hasn't been set yet
-        if (cellCount === 0) {
-          setCellCount(event.possibleCellCounts[0]);
-        } else {
-          // Find the nearest valid cell count
-          const nearestCellCount = findClosestStep(cellCount);
-          setCellCount(nearestCellCount);
-        }
+    console.log('evenFitsOnly changed to:', evenFitsOnly);
+    console.log('current steps:', steps);
+    
+    // Filter steps when evenFitsOnly changes
+    const filteredSteps = evenFitsOnly 
+      ? steps.filter(step => step % 2 === 0)
+      : steps;
+    
+    console.log('filtered steps:', filteredSteps);
+    setSteps(filteredSteps);
+    
+    // Adjust current cell count to nearest valid step
+    if (filteredSteps.length > 0) {
+      const nearestStep = findClosestStep(cellCount);
+      if (nearestStep !== cellCount) {
+        setCellCount(nearestStep);
       }
     }
-  
+    
+    // Re-emit the cell count to trigger recalculation
+    emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: cellCount.toString() });
+  }, [evenFitsOnly]);
+
+  useEffect(() => {
+    const cellCountHandler = (event: { possibleCellCounts: number[], exactFitCounts: number[] } | undefined) => {
+      if (event?.possibleCellCounts && Array.isArray(event.possibleCellCounts)) {
+        // Store original exact fits when we receive them
+        if (event.exactFitCounts) {
+          setOriginalExactFits(event.exactFitCounts);
+        }
+        
+        // Filter exact fits based on evenFitsOnly
+        const filteredExactCounts = evenFitsOnly 
+          ? event.exactFitCounts.filter(count => count % 2 === 0)
+          : event.exactFitCounts;
+
+        if (filteredExactCounts?.length > 0) {
+          setExactFit(true);
+          setDropdownOptions(filteredExactCounts.map(count => ({ value: count.toString() })));
+          setDropdownValue(filteredExactCounts[0]?.toString() || null);
+          setExactFitCount(filteredExactCounts.length === 1 ? filteredExactCounts[0] : null);
+        }
+        
+        // Always filter based on evenFitsOnly first
+        const filteredPossibleCounts = evenFitsOnly 
+          ? event.possibleCellCounts.filter(count => count % 2 === 0)
+          : event.possibleCellCounts;
+        
+        // Adjust current cell count if needed
+        if (cellCount === 0 && filteredPossibleCounts.length > 0) {
+          setCellCount(filteredPossibleCounts[0]);
+        } else if (filteredPossibleCounts.length > 0) {
+          const nearestCellCount = findClosestStep(cellCount);
+          if (nearestCellCount !== cellCount) {
+            setCellCount(nearestCellCount);
+          }
+        }
+      }
+    };
+
     on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', cellCountHandler);
     
-  
-    // Clean up the event listeners on component unmount
     return () => {
-      // Remove the event listeners
-      // You might need to use a method provided by your event system to remove listeners
-      // For example:
-      // off('POSSIBLE_CELL_COUNTS', cellCountHandler);
-      // off('COLORS_UPDATED', colorUpdateHandler);
+      // Clean up listener if needed
     };
-  }, [cellCount, isExactFitEnabled, findClosestStep]);
+  }, [cellCount, evenFitsOnly, findClosestStep]);
 
-  
-
-useEffect(() => {
-  on<UpdateColorsHandler>('UPDATE_COLORS', function({ hexColors, opacityPercent }) {
-    // Only update the state if the colors have actually changed
-    if (JSON.stringify(hexColors) !== JSON.stringify(hexColors) ||
-        JSON.stringify(opacityPercent) !== JSON.stringify(opacityPercent)) {
-      setHexColors(hexColors);
-      setOpacityPercent(opacityPercent);
-    }
-  });
-  
-  return () => {
-    // Clean up the event listener
-    // You might need to use a method provided by your event system to remove listeners
-    // For example: off('UPDATE_COLORS', colorUpdateHandler);
-  };
-}, []);
+  useEffect(() => {
+    on<UpdateColorsHandler>('UPDATE_COLORS', function({ hexColors, opacityPercent }) {
+      // Only update the state if the colors have actually changed
+      if (JSON.stringify(hexColors) !== JSON.stringify(hexColors) ||
+          JSON.stringify(opacityPercent) !== JSON.stringify(opacityPercent)) {
+        setHexColors(hexColors);
+        setOpacityPercent(opacityPercent);
+      }
+    });
+    
+    return () => {
+      // Clean up the event listener
+      // You might need to use a method provided by your event system to remove listeners
+      // For example: off('UPDATE_COLORS', colorUpdateHandler);
+    };
+  }, []);
 
   console.log('dropdown values',dropdownValue)
   const debouncedUpdateColors = debounce((newHexColors: string[], newOpacityPercent: string[]) => {
@@ -279,6 +305,38 @@ useEffect(() => {
     debouncedUpdateColors(hexColors, opacityPercent);
   }, [hexColors, opacityPercent]);
 
+  useEffect(() => {
+    // Re-emit the cell count to trigger recalculation with new evenFitsOnly value
+    emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: cellCount.toString() });
+  }, [evenFitsOnly]);
+
+  function handleEvenFitsChange(event: h.JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked;
+    setEvenFitsOnly(newValue);
+    // This will trigger the effect above
+  }
+
+  // Add this effect to handle the interaction between evenFitsOnly and exactFit
+  useEffect(() => {
+    if (isExactFitEnabled) {
+      const exactFits = evenFitsOnly 
+        ? originalExactFits.filter(count => count % 2 === 0)
+        : originalExactFits;
+      
+      setDropdownOptions(exactFits.map(count => ({ value: count.toString() })));
+      
+      // Update to nearest valid value
+      if (exactFits.length > 0) {
+        const currentValue = parseInt(dropdownValue || '0');
+        const nearestValue = exactFits.reduce((prev, curr) => 
+          Math.abs(curr - currentValue) < Math.abs(prev - currentValue) ? curr : prev
+        );
+        setDropdownValue(nearestValue.toString());
+        setCellCount(nearestValue);
+      }
+    }
+  }, [evenFitsOnly, isExactFitEnabled]);
+
   return (
     <div className="relative h-full text-balance">
     {!isGridCreated && <Container space="medium">
@@ -287,14 +345,23 @@ useEffect(() => {
 
       <Columns className="flex items-center justify-between">
         <div>
-            <Text>Grid Cells</Text>
+          <Text>Grid Cells</Text>
         </div>
-        { exactFit && <div>
-          <Toggle onChange={handleExactFitChange} value={isExactFitEnabled}>
-                <Text>{exactFitCount !== null ? `Show 1 perfect fit` : 'Show perfect fits'}</Text>
-            </Toggle>
-        </div>}
       </Columns>
+      <VerticalSpace space="medium" />
+      <div className="flex flex-col gap-2">
+        <Toggle onChange={(e) => {
+          console.log('Toggle clicked, new value:', e.currentTarget.checked);
+          setEvenFitsOnly(e.currentTarget.checked);
+        }} value={evenFitsOnly}>
+          <Text>Even fits only</Text>
+        </Toggle>
+        { exactFit && 
+          <Toggle onChange={handleExactFitChange} value={isExactFitEnabled}>
+            <Text>{exactFitCount !== null ? `Show 1 perfect fit` : 'Show perfect fits'}</Text>
+          </Toggle>
+        }
+      </div>
       {showDropdown && <VerticalSpace space="small" />}
       {showDropdown &&<CellCountPicker 
         cellCountOptions={dropdownOptions} 
