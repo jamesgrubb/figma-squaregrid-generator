@@ -4,7 +4,7 @@
     "figma"
   ],
   "id": "preact-tailwindcss",
-  "name": "You're so square",
+  "name": "Preact Tailwind Css",
   "main": "build/main.js",
   "ui": "build/ui.js"
 }
