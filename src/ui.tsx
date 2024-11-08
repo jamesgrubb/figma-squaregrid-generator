@@ -40,6 +40,7 @@ function Plugin() {
   const [isExactFitEnabled, setIsExactFitEnabled] = useState(false);
   const [randomizeColors, setRandomizeColors] = useState(false)
   const [evenFitsOnly, setEvenFitsOnly] = useState<boolean>(false);
+  const [originalExactFits, setOriginalExactFits] = useState<number[]>([]);
   
   const numColorPickers = Math.min(cellCount, 5);
 
@@ -148,30 +149,28 @@ function Plugin() {
   useEffect(() => {
     const cellCountHandler = (event: { possibleCellCounts: number[], exactFitCounts: number[] } | undefined) => {
       if (event?.possibleCellCounts && Array.isArray(event.possibleCellCounts)) {
-        // Always filter based on evenFitsOnly first
-        const filteredPossibleCounts = evenFitsOnly 
-          ? event.possibleCellCounts.filter(count => count % 2 === 0)
-          : event.possibleCellCounts;
+        // Store original exact fits when we receive them
+        if (event.exactFitCounts) {
+          setOriginalExactFits(event.exactFitCounts);
+        }
         
+        // Filter exact fits based on evenFitsOnly
         const filteredExactCounts = evenFitsOnly 
-          ? (event.exactFitCounts || []).filter(count => count % 2 === 0)
+          ? event.exactFitCounts.filter(count => count % 2 === 0)
           : event.exactFitCounts;
 
-        setSteps(filteredPossibleCounts);
-        
-        // Update exact fit options
         if (filteredExactCounts?.length > 0) {
           setExactFit(true);
           setDropdownOptions(filteredExactCounts.map(count => ({ value: count.toString() })));
           setDropdownValue(filteredExactCounts[0]?.toString() || null);
           setExactFitCount(filteredExactCounts.length === 1 ? filteredExactCounts[0] : null);
-        } else {
-          setExactFit(false);
-          setDropdownOptions([]);
-          setDropdownValue(null);
-          setExactFitCount(null);
         }
-
+        
+        // Always filter based on evenFitsOnly first
+        const filteredPossibleCounts = evenFitsOnly 
+          ? event.possibleCellCounts.filter(count => count % 2 === 0)
+          : event.possibleCellCounts;
+        
         // Adjust current cell count if needed
         if (cellCount === 0 && filteredPossibleCounts.length > 0) {
           setCellCount(filteredPossibleCounts[0]);
@@ -316,6 +315,27 @@ function Plugin() {
     setEvenFitsOnly(newValue);
     // This will trigger the effect above
   }
+
+  // Add this effect to handle the interaction between evenFitsOnly and exactFit
+  useEffect(() => {
+    if (isExactFitEnabled) {
+      const exactFits = evenFitsOnly 
+        ? originalExactFits.filter(count => count % 2 === 0)
+        : originalExactFits;
+      
+      setDropdownOptions(exactFits.map(count => ({ value: count.toString() })));
+      
+      // Update to nearest valid value
+      if (exactFits.length > 0) {
+        const currentValue = parseInt(dropdownValue || '0');
+        const nearestValue = exactFits.reduce((prev, curr) => 
+          Math.abs(curr - currentValue) < Math.abs(prev - currentValue) ? curr : prev
+        );
+        setDropdownValue(nearestValue.toString());
+        setCellCount(nearestValue);
+      }
+    }
+  }, [evenFitsOnly, isExactFitEnabled]);
 
   return (
     <div className="relative h-full text-balance">
