@@ -11,7 +11,8 @@ import {
   ExactFitHandler, 
   PerfectFitsHandler, 
   SinglePerfectFitHandler, 
-  RandomizeColorsHandler 
+  RandomizeColorsHandler, 
+  EvenGridHandler 
 } from './types';
 import { EventHandler } from '@create-figma-plugin/utilities';
 import debounce from 'lodash/debounce';
@@ -38,6 +39,7 @@ export default function () {
   type PossibleCellCountsHandler = EventHandler & {
     possibleCellCounts: number[];
     exactFitCounts: number[];
+    evenGridCounts: number[];
   };
 
   const debouncedUpdateColors = debounce((hexColors: string[], opacityPercent: string[]) => {
@@ -111,10 +113,10 @@ export default function () {
       lastPadding = padding;
       isGridCreated = true;
       
-      const { possibleCounts, exactFitCounts } = getPossibleCellCounts(lastWidth, lastHeight, 300);
+      const { possibleCounts, exactFitCounts, evenGridCounts } = getPossibleCellCounts(lastWidth, lastHeight, 300);
       console.log('from main exactFitCounts', exactFitCounts)
       
-      emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { possibleCellCounts: possibleCounts, exactFitCounts });
+      emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { possibleCellCounts: possibleCounts, exactFitCounts, evenGridCounts });
     }
   });
 
@@ -384,20 +386,29 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 
 
 
-function getPossibleCellCounts(width: number, height: number, maxCells: number): {possibleCounts: number[], exactFitCounts: number[]} {
+function getPossibleCellCounts(width: number, height: number, maxCells: number): {
+  possibleCounts: number[], 
+  exactFitCounts: number[],
+  evenGridCounts: number[]
+} {
   const possibleCounts: number[] = [];
   const exactFitCounts: number[] = [];
+  const evenGridCounts: number[] = [];
+
   for (let i = 1; i <= maxCells; i++) {
     const grid = fitSquaresInRectangle(width, height, i);
     if (grid.nrows * grid.ncols === i) {
       possibleCounts.push(i);
-    } if (grid.used_width === Math.floor(width) && 
-    grid.used_height === Math.floor(height)) {
+    }
+    if (grid.used_width === Math.floor(width) && grid.used_height === Math.floor(height)) {
       exactFitCounts.push(i);
     }
+    if (grid.nrows % 2 === 0 && grid.ncols % 2 === 0) {
+      evenGridCounts.push(i);
+    }
   }
-  console.log('possibleCounts',possibleCounts,'exactFitCounts',exactFitCounts)
-  return {possibleCounts, exactFitCounts};
+  
+  return { possibleCounts, exactFitCounts, evenGridCounts };
 }
 
 
