@@ -134,7 +134,7 @@ function Plugin() {
     console.log('filtered steps:', filteredSteps);
     setSteps(filteredSteps);
     
-    // Adjust current cell count to nearest valid step
+    // Adjust current cell count if needed
     if (filteredSteps.length > 0) {
       const nearestStep = findClosestStep(cellCount);
       if (nearestStep !== cellCount) {
@@ -149,12 +149,21 @@ function Plugin() {
   useEffect(() => {
     const cellCountHandler = (event: { possibleCellCounts: number[], exactFitCounts: number[] } | undefined) => {
       if (event?.possibleCellCounts && Array.isArray(event.possibleCellCounts)) {
-        // Store original exact fits when we receive them
+        console.log('Received possible cell counts:', event.possibleCellCounts);
+        
+        // Store original exact fits
         if (event.exactFitCounts) {
           setOriginalExactFits(event.exactFitCounts);
         }
         
-        // Filter exact fits based on evenFitsOnly
+        // Filter steps based on evenFitsOnly
+        const filteredSteps = evenFitsOnly 
+          ? event.possibleCellCounts.filter(count => count % 2 === 0)
+          : event.possibleCellCounts;
+        
+        setSteps(filteredSteps);
+        
+        // Filter exact fits
         const filteredExactCounts = evenFitsOnly 
           ? event.exactFitCounts.filter(count => count % 2 === 0)
           : event.exactFitCounts;
@@ -166,15 +175,10 @@ function Plugin() {
           setExactFitCount(filteredExactCounts.length === 1 ? filteredExactCounts[0] : null);
         }
         
-        // Always filter based on evenFitsOnly first
-        const filteredPossibleCounts = evenFitsOnly 
-          ? event.possibleCellCounts.filter(count => count % 2 === 0)
-          : event.possibleCellCounts;
-        
         // Adjust current cell count if needed
-        if (cellCount === 0 && filteredPossibleCounts.length > 0) {
-          setCellCount(filteredPossibleCounts[0]);
-        } else if (filteredPossibleCounts.length > 0) {
+        if (cellCount === 0 && filteredSteps.length > 0) {
+          setCellCount(filteredSteps[0]);
+        } else if (filteredSteps.length > 0) {
           const nearestCellCount = findClosestStep(cellCount);
           if (nearestCellCount !== cellCount) {
             setCellCount(nearestCellCount);
@@ -184,11 +188,7 @@ function Plugin() {
     };
 
     on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', cellCountHandler);
-    
-    return () => {
-      // Clean up listener if needed
-    };
-  }, [cellCount, evenFitsOnly, findClosestStep]);
+  }, [cellCount, evenFitsOnly]);
 
   useEffect(() => {
     on<UpdateColorsHandler>('UPDATE_COLORS', function({ hexColors, opacityPercent }) {
