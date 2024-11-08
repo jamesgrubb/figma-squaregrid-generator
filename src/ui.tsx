@@ -126,15 +126,10 @@ function Plugin() {
     console.log('evenFitsOnly changed to:', evenFitsOnly);
     console.log('current steps:', steps);
     
-    // Filter steps when evenFitsOnly changes
     const filteredSteps = evenFitsOnly 
       ? steps.filter(step => step % 2 === 0)
       : steps;
     
-    console.log('filtered steps:', filteredSteps);
-    setSteps(filteredSteps);
-    
-    // Adjust current cell count if needed
     if (filteredSteps.length > 0) {
       const nearestStep = findClosestStep(cellCount);
       if (nearestStep !== cellCount) {
@@ -142,7 +137,6 @@ function Plugin() {
       }
     }
     
-    // Re-emit the cell count to trigger recalculation
     emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: cellCount.toString() });
   }, [evenFitsOnly]);
 
