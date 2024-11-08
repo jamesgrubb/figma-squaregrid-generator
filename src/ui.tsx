@@ -347,20 +347,21 @@ function Plugin() {
         <div>
           <Text>Grid Cells</Text>
         </div>
-        <div className="flex flex-col gap-2">
-          <Toggle onChange={(e) => {
-            console.log('Toggle clicked, new value:', e.currentTarget.checked);
-            setEvenFitsOnly(e.currentTarget.checked);
-          }} value={evenFitsOnly}>
-            <Text>Even fits only</Text>
-          </Toggle>
-          { exactFit && 
-            <Toggle onChange={handleExactFitChange} value={isExactFitEnabled}>
-              <Text>{exactFitCount !== null ? `Show 1 perfect fit` : 'Show perfect fits'}</Text>
-            </Toggle>
-          }
-        </div>
       </Columns>
+      <VerticalSpace space="medium" />
+      <div className="flex flex-col gap-2">
+        <Toggle onChange={(e) => {
+          console.log('Toggle clicked, new value:', e.currentTarget.checked);
+          setEvenFitsOnly(e.currentTarget.checked);
+        }} value={evenFitsOnly}>
+          <Text>Even fits only</Text>
+        </Toggle>
+        { exactFit && 
+          <Toggle onChange={handleExactFitChange} value={isExactFitEnabled}>
+            <Text>{exactFitCount !== null ? `Show 1 perfect fit` : 'Show perfect fits'}</Text>
+          </Toggle>
+        }
+      </div>
       {showDropdown && <VerticalSpace space="small" />}
       {showDropdown &&<CellCountPicker 
         cellCountOptions={dropdownOptions} 
