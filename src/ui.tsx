@@ -252,36 +252,43 @@ function Plugin() {
   const handleExactFitChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
     const target = event.currentTarget as HTMLInputElement;
     const newValue = target?.checked;
+    
     setIsExactFitEnabled(newValue);
-  
-    if (newValue) {
-      // Switching to dropdown (exact fit)
-      let newCellCount: number;
-      if (dropdownOptions.length > 0 && dropdownOptions[0].value !== 'No exact fits') {
-        // Find the nearest exact fit value to the current cellCount
-        const nearestOption = dropdownOptions.reduce((prev, curr) => {
-          const prevValue = parseInt(prev.value, 10);
-          const currValue = parseInt(curr.value, 10);
-          return Math.abs(currValue - cellCount) < Math.abs(prevValue - cellCount) ? curr : prev;
-        });
-        newCellCount = parseInt(nearestOption.value, 10);
-      } else {
-        // If no exact fits, keep the current cellCount
-        newCellCount = cellCount;
-      }
-      setCellCount(newCellCount);
-      setDropdownValue(newCellCount.toString());
-      emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: newCellCount.toString() });
-    } else {
-      // Switching to range slider
-      const nearestValue = findClosestStep(cellCount);
-      setCellCount(nearestValue);
-      emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestValue.toString() });
-    }
-  
     setShowDropdown(newValue);
+
+    if (newValue) {
+      // When enabling exact fit mode, find nearest valid perfect fit
+      if (dropdownOptions.length > 0) {
+        const validOptions = evenRowsColumns 
+          ? dropdownOptions.filter(opt => parseInt(opt.value) % 2 === 0)
+          : dropdownOptions;
+          
+        if (validOptions.length > 0) {
+          // Find nearest perfect fit to current cell count
+          const nearestOption = validOptions.reduce((prev, curr) => {
+            const prevValue = parseInt(prev.value);
+            const currValue = parseInt(curr.value);
+            return Math.abs(currValue - cellCount) < Math.abs(prevValue - cellCount) ? curr : prev;
+          });
+          
+          const newCellCount = parseInt(nearestOption.value);
+          setCellCount(newCellCount);
+          setDropdownValue(nearestOption.value);
+          emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: newCellCount.toString() });
+        }
+      }
+    } else {
+      // When turning off exact fit mode, reset to first available step
+      if (steps.length > 0) {
+        const firstStep = steps[0];
+        setCellCount(firstStep);
+        setDropdownValue(null);
+        emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: firstStep.toString() });
+      }
+    }
+
     emit<ExactFitHandler>('EXACT_FIT', { exactFit: newValue });
-  }
+  };
 
   function handleCreateGrid() {
     emit('CREATE_GRID', { cellCount, padding })
@@ -334,6 +341,34 @@ function Plugin() {
 
   useEffect(() => {
     emit('EVEN_GRID', { evenGrid: evenRowsColumns });
+    
+    // When enabling even rows/columns, check if current perfect fits are still valid
+    const validExactFits = originalExactFits.filter(count => count % 2 === 0);
+    
+    if (validExactFits.length === 0) {
+      // Hide the perfect fit toggle if there are no valid fits
+      setExactFit(false);
+      
+      if (isExactFitEnabled) {
+        // If we were in perfect fit mode, reset to normal mode
+        setIsExactFitEnabled(false);
+        setShowDropdown(false);
+        
+        // Reset to first available step
+        if (steps.length > 0) {
+          const validSteps = evenRowsColumns 
+            ? steps.filter(step => step % 2 === 0)
+            : steps;
+          
+          if (validSteps.length > 0) {
+            const firstStep = validSteps[0];
+            setCellCount(firstStep);
+            setDropdownValue(null);
+            emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: firstStep.toString() });
+          }
+        }
+      }
+    }
   }, [evenRowsColumns]);
 
   return (
@@ -359,6 +394,25 @@ function Plugin() {
         <Toggle onChange={(e) => {
           console.log('Even grid toggle clicked:', e.currentTarget.checked);
           setEvenRowsColumns(e.currentTarget.checked);
+          
+          if (e.currentTarget.checked && isExactFitEnabled) {
+            // If enabling even rows/columns and we're in perfect fit mode
+            setIsExactFitEnabled(false);
+            setShowDropdown(false);
+            setExactFit(false);
+            
+            // Reset to first available even step
+            const evenSteps = steps.filter(step => step % 2 === 0);
+            if (evenSteps.length > 0) {
+              setCellCount(evenSteps[0]);
+              emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: evenSteps[0].toString() });
+            }
+          } else if (!e.currentTarget.checked) {
+            // When disabling even rows/columns, restore perfect fit option if there are any
+            if (originalExactFits.length > 0) {
+              setExactFit(true);
+            }
+          }
         }} value={evenRowsColumns}>
           <Text>Even rows and columns</Text>
         </Toggle>
