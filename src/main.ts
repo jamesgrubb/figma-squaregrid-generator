@@ -30,6 +30,7 @@ let selectedColors: string[] = ['2a5256','cac578','c69a94','57b59c','b1371b'];
 let selectedOpacities: string[] = ['100%','100%','100%','100%','100%'];
 let randomizeColors: boolean = false;
 let lastEmittedColors: { hexColors: string[], opacityPercent: string[] } | null = null;
+let forceEvenGrid: boolean = false;
 export default function () {
   showUI({
     height: 280,
@@ -225,6 +226,13 @@ export default function () {
       }
     }
   });
+
+  on<EvenGridHandler>('EVEN_GRID', function({ evenGrid }) {
+    forceEvenGrid = evenGrid;
+    if (selectedFrame && !isNewFrameSelected) {
+      updateGrid(lastCells, lastPadding);
+    }
+  });
 }
 
 function findSinglePerfectFit(exactFitCounts: number[]): number | null {
@@ -291,7 +299,7 @@ function updateGrid(cells: number, padding: number) {
   const availableWidth = frameWidth * (1 - paddingValue);
   const availableHeight = frameHeight * (1 - paddingValue);
 
-  const grid = fitSquaresInRectangle(availableWidth, availableHeight, cells);
+  const grid = fitSquaresInRectangle(availableWidth, availableHeight, cells, forceEvenGrid);
   const nrows = grid.nrows;
   const ncols = grid.ncols;
   const cell_size = grid.cell_size;
@@ -412,7 +420,7 @@ function getPossibleCellCounts(width: number, height: number, maxCells: number):
 }
 
 
-function fitSquaresInRectangle(x: number, y: number, n: number) {
+function fitSquaresInRectangle(x: number, y: number, n: number, forceEvenGrid: boolean = false) {
   const adjustedX = Math.floor(x);
   const adjustedY = Math.floor(y);
 
@@ -420,12 +428,12 @@ function fitSquaresInRectangle(x: number, y: number, n: number) {
   var ncols_float = Math.sqrt(n * ratio);
   var nrows_float = n / ncols_float;
 
-  var nrows1 = Math.floor(nrows_float);
-  var ncols1 = Math.ceil(n / nrows1);
+  var nrows1 = forceEvenGrid ? Math.floor(nrows_float / 2) * 2 : Math.floor(nrows_float);
+  var ncols1 = forceEvenGrid ? Math.ceil(n / nrows1 / 2) * 2 : Math.ceil(n / nrows1);
   var cell_size1 = Math.floor(Math.min(adjustedX / ncols1, adjustedY / nrows1));
 
-  var ncols2 = Math.floor(ncols_float);
-  var nrows2 = Math.ceil(n / ncols2);
+  var ncols2 = forceEvenGrid ? Math.floor(ncols_float / 2) * 2 : Math.floor(ncols_float);
+  var nrows2 = forceEvenGrid ? Math.ceil(n / ncols2 / 2) * 2 : Math.ceil(n / ncols2);
   var cell_size2 = Math.floor(Math.min(adjustedX / ncols2, adjustedY / nrows2));
 
   if (cell_size1 % 2 !== 0) cell_size1--;

@@ -63,3 +63,8 @@ export interface EvenGridHandler {
   name: 'EVEN_GRID'
   handler: (options: { evenGrid: boolean }) => void
 }
+
+export interface EvenGridHandler {
+  name: 'EVEN_GRID'
+  handler: (data: { evenGrid: boolean }) => void
+}

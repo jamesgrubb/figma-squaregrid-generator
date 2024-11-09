@@ -41,6 +41,7 @@ function Plugin() {
   const [randomizeColors, setRandomizeColors] = useState(false)
   const [evenFitsOnly, setEvenFitsOnly] = useState<boolean>(false);
   const [originalExactFits, setOriginalExactFits] = useState<number[]>([]);
+  const [evenRowsColumns, setEvenRowsColumns] = useState<boolean>(false);
   
   const numColorPickers = Math.min(cellCount, 5);
 
@@ -331,6 +332,10 @@ function Plugin() {
     }
   }, [evenFitsOnly, isExactFitEnabled]);
 
+  useEffect(() => {
+    emit('EVEN_GRID', { evenGrid: evenRowsColumns });
+  }, [evenRowsColumns]);
+
   return (
     <div className="relative h-full text-balance">
     {!isGridCreated && <Container space="medium">
@@ -350,7 +355,15 @@ function Plugin() {
         }} value={evenFitsOnly}>
           <Text>Even fits only</Text>
         </Toggle>
-        { exactFit && 
+        
+        <Toggle onChange={(e) => {
+          console.log('Even grid toggle clicked:', e.currentTarget.checked);
+          setEvenRowsColumns(e.currentTarget.checked);
+        }} value={evenRowsColumns}>
+          <Text>Even rows and columns</Text>
+        </Toggle>
+
+        {exactFit && 
           <Toggle onChange={handleExactFitChange} value={isExactFitEnabled}>
             <Text>{exactFitCount !== null ? `Show 1 perfect fit` : 'Show perfect fits'}</Text>
           </Toggle>
