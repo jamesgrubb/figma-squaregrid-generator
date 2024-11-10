@@ -406,8 +406,6 @@ function getPossibleCellCounts(width: number, height: number, maxCells: number, 
   const targetWidth = Math.floor(width);
   const targetHeight = Math.floor(height);
 
-  console.log('Target dimensions:', { targetWidth, targetHeight, forceEvenGrid });
-
   for (let i = 1; i <= maxCells; i++) {
     const grid = fitSquaresInRectangle(width, height, i, forceEvenGrid);
     
@@ -421,36 +419,15 @@ function getPossibleCellCounts(width: number, height: number, maxCells: number, 
                       grid.used_height === targetHeight &&
                       grid.cell_size > 0;
                       
-    const hasEvenDimensions = grid.nrows % 2 === 0 && 
-                             grid.ncols % 2 === 0;
-
     if (isExactFit) {
-      console.log(`Checking grid ${i}:`, {
-        dimensions: `${grid.used_width}x${grid.used_height}`,
-        target: `${targetWidth}x${targetHeight}`,
-        rows: grid.nrows,
-        cols: grid.ncols,
-        isEven: hasEvenDimensions,
-        cellSize: grid.cell_size
-      });
-
-      if (!forceEvenGrid || (forceEvenGrid && hasEvenDimensions)) {
-        exactFitCounts.push(i);
-        console.log(`Added ${i} to exact fits`);
-      }
+      exactFitCounts.push(i);
     }
     
-    // Even grid counts
-    if (hasEvenDimensions) {
+    // Keep even grid counts for even rows/columns feature
+    if (grid.nrows % 2 === 0 && grid.ncols % 2 === 0) {
       evenGridCounts.push(i);
     }
   }
-  
-  console.log('Final counts:', {
-    possible: possibleCounts,
-    exact: exactFitCounts,
-    even: evenGridCounts
-  });
   
   return { possibleCounts, exactFitCounts, evenGridCounts };
 }
