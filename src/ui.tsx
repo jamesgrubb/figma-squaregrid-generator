@@ -329,71 +329,78 @@ function Plugin() {
       
       <VerticalSpace space="large" />
 
-      <div className="flex flex-col gap-2">
-        
-        <Toggle 
-          onChange={handleEvenRowsColumnsChange}
-          value={evenRowsColumns}
-          disabled={isLoading}
-        >
-          <Text>{isLoading ? 'Calculating...' : 'Even rows and columns'}</Text>
-        </Toggle>
-
-        {shouldShowExactFitToggle() && (
-          <Toggle 
-            onChange={handleExactFitChange} 
-            value={isExactFitEnabled}
-          >
-            <Text>
-              {perfectFitNumber ? 'Show 1 perfect fit' : 'Show perfect fits'}
-            </Text>
-          </Toggle>
-        )}
-
-    
-        {isExactFitEnabled ? (
-          perfectFitNumber ? (
-            // Single perfect fit case
-            <TextboxNumeric
-              icon={<IconTidyGrid32 />}     
-              variant='border'
-              disabled={true}
-              value={perfectFitNumber.toString()}
-            />
+      <div className="flex flex-col justify-between gap-2">
+        <div>
+          <Text><Bold>Cell Count</Bold></Text>        
+          <VerticalSpace space="small" />
+          {!isExactFitEnabled ? (
+            <div>
+              <TextboxNumeric
+                icon={<IconTidyGrid32 />}     
+                variant='border'
+                maximum={Math.max(...steps, 300)}
+                minimum={Math.min(...steps, 1)}
+                onValueInput={handleCellCountChange}
+                value={cellCount?.toString() ?? '0'}
+              />
+              <RangeSlider
+                maximum={Math.max(...steps, 300)}
+                minimum={Math.min(...steps, 1)}
+                value={cellCount?.toString() ?? '0'}
+                onValueInput={(value) => {
+                  const numericValue = parseInt(value, 10);
+                  const closestStep = findClosestStep(numericValue);
+                  setCellCount(closestStep);
+                  emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: closestStep.toString() });
+                }}
+              />
+              <VerticalSpace space="small" />
+            </div>
           ) : (
-            // Multiple perfect fits case
-            <CellCountPicker 
-              cellCountOptions={dropdownOptions} 
-              dropdownCellCountChange={handleDropdownCellCountChange}  
-              dropdownValue={dropdownValue}
-            />
-          )
-        ) : (
-          // Regular numeric input case
-          <div>
-            <Text><Bold>Cell Count</Bold></Text>
-            <VerticalSpace space="small" />
-            <TextboxNumeric
-              icon={<IconTidyGrid32 />}     
-              variant='border'
-              maximum={Math.max(...steps, 300)}
-              minimum={Math.min(...steps, 1)}
-              onValueInput={handleCellCountChange}
-              value={cellCount?.toString() ?? '0'}
-            />
-            <RangeSlider
-              maximum={Math.max(...steps, 300)}
-              minimum={Math.min(...steps, 1)}
-              value={cellCount?.toString() ?? '0'}
-              onValueInput={(value) => {
-                const numericValue = parseInt(value, 10);
-                const closestStep = findClosestStep(numericValue);
-                setCellCount(closestStep);
-                emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: closestStep.toString() });
-              }}
-            />
+            <div>
+              {perfectFitNumber ? (
+                <div>
+                  <VerticalSpace space="large" />
+                  <TextboxNumeric
+                    icon={<IconTidyGrid32 />}     
+                    variant='border'
+                    disabled={true}
+                    value={perfectFitNumber.toString()}
+                  />
+                  <VerticalSpace space="small" />
+                </div>
+              ) : (
+                <div>
+                  <CellCountPicker 
+                    cellCountOptions={dropdownOptions} 
+                    dropdownCellCountChange={handleDropdownCellCountChange}  
+                    dropdownValue={dropdownValue}
+                  />
+                </div>
+              )}
+            </div>
+          )}
           </div>
-        )}
+          <div>
+          <Toggle 
+            onChange={handleEvenRowsColumnsChange}
+            value={evenRowsColumns}
+            disabled={isLoading}
+          >
+            <Text>{isLoading ? 'Calculating...' : 'Even rows and columns'}</Text>
+          </Toggle>
+          <VerticalSpace space='small' />
+          {shouldShowExactFitToggle() && (
+            <Toggle 
+              onChange={handleExactFitChange} 
+              value={isExactFitEnabled}
+            >
+              <Text>
+                {perfectFitNumber ? 'Show 1 perfect fit' : 'Show perfect fits'}
+              </Text>
+            </Toggle>
+          )}
+      </div>
       </div>
     </Container>}
 
