@@ -307,12 +307,12 @@ function Plugin() {
     // This will trigger the effect above
   }
 
-  // Add this effect to handle the interaction between evenFitsOnly and exactFit
+  // Add this effect to handle the interaction between evenRowsColumns and exactFit
   useEffect(() => {
     if (isExactFitEnabled) {
       const exactFits = evenRowsColumns 
-        ? originalExactFits.filter(count => {
-            const sqrt = Math.sqrt(count);
+        ? originalExactFits.filter(num => {
+            const sqrt = Math.sqrt(num);
             return Number.isInteger(sqrt) && sqrt % 2 === 0;
           })
         : originalExactFits;
@@ -327,9 +327,10 @@ function Plugin() {
         );
         setDropdownValue(nearestValue.toString());
         setCellCount(nearestValue);
+        emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestValue.toString() });
       }
     }
-  }, [evenRowsColumns, isExactFitEnabled]);
+  }, [evenRowsColumns, isExactFitEnabled, originalExactFits]);
 
   useEffect(() => {
     // Update UI when evenRowsColumns changes
@@ -357,6 +358,17 @@ function Plugin() {
       console.log('Valid even grid counts:', validCounts);
 
       if (newValue && cellCount !== null) {
+        // Check if there are valid exact fits with even rows/columns
+        const validExactFits = originalExactFits.filter(num => {
+          const sqrt = Math.sqrt(num);
+          return Number.isInteger(sqrt) && sqrt % 2 === 0;
+        });
+
+        // Only disable exact fit if there are no valid exact fits
+        if (isExactFitEnabled && validExactFits.length === 0) {
+          setIsExactFitEnabled(false);
+        }
+
         // If current count isn't valid, update to nearest valid count
         if (!validCounts.includes(cellCount)) {            
           const nearestCount = validCounts.reduce((prev, curr) => 
@@ -364,7 +376,6 @@ function Plugin() {
             validCounts[0]
           );
           
-          setIsExactFitEnabled(false);
           setCellCount(nearestCount);
           emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestCount.toString() });
         }
