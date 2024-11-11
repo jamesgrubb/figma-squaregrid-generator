@@ -22,6 +22,16 @@ import { CellCountPicker } from './components/CellCountPicker'
 import { emit, on } from '@create-figma-plugin/utilities'
 import { FrameSelectionHandler, AutoPopulateHandler, PossibleCellCountsHandler, UpdateColorsHandler, CellCountHandler, ExactFitHandler } from './types'
 
+// Add interface for grid options
+interface GridOptions {
+  target: {
+    cellCount: number;
+    padding: number;
+  };
+  option1: Record<string, any>;
+  option2: Record<string, any>;
+}
+
 function Plugin() {
   const [cellCount, setCellCount] = useState<number>(0)
   const [padding, setPadding] = useState<number>(0)
@@ -80,9 +90,19 @@ function Plugin() {
       ? steps.filter(step => step % 2 === 0)
       : steps;
     
-    return validSteps.reduce((prev, curr) => 
+    console.log('Finding closest step:', {
+      value,
+      validSteps,
+      evenRowsColumns,
+      currentCellCount: cellCount
+    });
+    
+    const nearestStep = validSteps.reduce((prev, curr) => 
       Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev
     );
+    
+    console.log('Found nearest step:', nearestStep);
+    return nearestStep;
   };
   
   console.log(isEnabled)
@@ -283,34 +303,180 @@ function Plugin() {
   useEffect(() => {
     emit('EVEN_GRID', { evenGrid: evenRowsColumns });
     
-    // When enabling even rows/columns, check if current perfect fits are still valid
-    const validExactFits = originalExactFits.filter(count => count % 2 === 0);
-    
-    if (validExactFits.length === 0) {
-      // Hide the perfect fit toggle if there are no valid fits
-      setExactFit(false);
+    if (evenRowsColumns) {
+      // When enabling even rows/columns
+      const validExactFits = originalExactFits.filter(count => count % 2 === 0);
+      const evenSteps = steps.filter(step => step % 2 === 0);
       
-      if (isExactFitEnabled) {
-        // If we were in perfect fit mode, reset to normal mode
+      // Hide perfect fits toggle if no valid fits exist
+      if (validExactFits.length === 0) {
+        setExactFit(false);
         setIsExactFitEnabled(false);
         setShowDropdown(false);
-        
-        // Reset to first available step
-        if (steps.length > 0) {
-          const validSteps = evenRowsColumns 
-            ? steps.filter(step => step % 2 === 0)
-            : steps;
-          
-          if (validSteps.length > 0) {
-            const firstStep = validSteps[0];
-            setCellCount(firstStep);
-            setDropdownValue(null);
-            emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: firstStep.toString() });
-          }
+      }
+      
+      // Update cell count to nearest valid even step
+      if (evenSteps.length > 0) {
+        const nearestEvenStep = findClosestStep(cellCount);
+        setCellCount(nearestEvenStep);
+        emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestEvenStep.toString() });
+      }
+      
+      // Update dropdown options if perfect fits are enabled
+      if (isExactFitEnabled && validExactFits.length > 0) {
+        setDropdownOptions(validExactFits.map(count => ({ value: count.toString() })));
+        setDropdownValue(validExactFits[0].toString());
+      }
+    } else {
+      // When disabling even rows/columns
+      if (originalExactFits.length > 0) {
+        setExactFit(true);
+        if (isExactFitEnabled) {
+          setDropdownOptions(originalExactFits.map(count => ({ value: count.toString() })));
+          setDropdownValue(originalExactFits[0].toString());
         }
       }
+      
+      // Update to nearest valid step from all steps
+      const nearestStep = findClosestStep(cellCount);
+      setCellCount(nearestStep);
+      emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestStep.toString() });
     }
   }, [evenRowsColumns]);
+
+  // Create a debounced cell count update
+  const debouncedCellCountUpdate = debounce((newCount: number) => {
+    setCellCount(newCount);
+    emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: newCount.toString() });
+  }, 50);
+
+  // Add validation for grid dimensions
+  const validateGridDimensions = (count: number, isEven: boolean) => {
+    const validCount = Math.max(2, count);
+    const finalCount = isEven && validCount % 2 !== 0 ? validCount + 1 : validCount;
+    
+    console.log('Validated grid dimensions:', {
+      inputCount: count,
+      isEven,
+      finalCount
+    });
+    
+    return finalCount;
+  };
+
+  // Add debug logging
+  const updateGridState = (newCellCount: number, newEvenRowsColumns?: boolean) => {
+    // Use new evenRowsColumns value if provided, otherwise use current state
+    const useEvenRows = newEvenRowsColumns !== undefined ? newEvenRowsColumns : evenRowsColumns;
+    
+    // Validate dimensions
+    const finalCount = Math.max(2, newCellCount);
+    const validCount = useEvenRows && finalCount % 2 !== 0 ? finalCount + 1 : finalCount;
+    const validPadding = Math.max(0, Math.min(100, padding));
+
+    // Create grid options
+    const gridOptions = {
+      target: {
+        cellCount: validCount,
+        padding: validPadding
+      },
+      option1: {},
+      option2: {}
+    };
+
+    // Debug log the exact structure
+    console.log('Grid update - full details:', {
+      gridOptions: JSON.stringify(gridOptions),
+      validCount,
+      validPadding,
+      useEvenRows,
+      currentState: {
+        cellCount,
+        padding,
+        evenRowsColumns
+      }
+    });
+
+    // Update state
+    if (newEvenRowsColumns !== undefined) {
+      setEvenRowsColumns(newEvenRowsColumns);
+    }
+    setCellCount(validCount);
+
+    // Emit updates with debug
+    console.log('Emitting CELL_COUNT_CHANGE:', { cellCount: validCount.toString() });
+    emit<CellCountHandler>('CELL_COUNT_CHANGE', { 
+      cellCount: validCount.toString() 
+    });
+
+    console.log('Emitting UPDATE_GRID:', gridOptions);
+    emit('UPDATE_GRID', gridOptions);
+  };
+
+  // Add effect to validate grid dimensions
+  useEffect(() => {
+    if (cellCount <= 0) {
+      console.warn('Invalid cell count:', cellCount);
+      return;
+    }
+
+    const validCount = validateGridDimensions(cellCount, evenRowsColumns);
+    const gridOptions = {
+      cellCount: validCount,
+      padding: Math.max(0, Math.min(100, padding))
+    };
+
+    console.log('Grid effect update with:', gridOptions);
+    emit('UPDATE_GRID', gridOptions);
+  }, [cellCount, padding, evenRowsColumns]);
+
+  // Add a single source of truth for grid updates
+  const updateGrid = (newCellCount: number, newEvenRowsColumns?: boolean) => {
+    // Use new evenRowsColumns value if provided, otherwise use current state
+    const useEvenRows = newEvenRowsColumns !== undefined ? newEvenRowsColumns : evenRowsColumns;
+    
+    // Validate dimensions
+    const finalCount = Math.max(2, newCellCount);
+    const validCount = useEvenRows && finalCount % 2 !== 0 ? finalCount + 1 : finalCount;
+    const validPadding = Math.max(0, Math.min(100, padding));
+
+    // Create grid options
+    const gridOptions = {
+      target: {
+        cellCount: validCount,
+        padding: validPadding
+      },
+      option1: {},
+      option2: {}
+    };
+
+    // Debug log the exact structure
+    console.log('Grid update - full details:', {
+      gridOptions,
+      validCount,
+      validPadding,
+      useEvenRows,
+      currentState: {
+        cellCount,
+        padding,
+        evenRowsColumns
+      }
+    });
+
+    // Update state in sequence
+    if (newEvenRowsColumns !== undefined) {
+      setEvenRowsColumns(newEvenRowsColumns);
+    }
+    setCellCount(validCount);
+
+    // Emit updates
+    emit<CellCountHandler>('CELL_COUNT_CHANGE', { 
+      cellCount: validCount.toString() 
+    });
+    
+    // Only emit grid update once
+    emit('UPDATE_GRID', gridOptions);
+  };
 
   return (
     <div className="relative h-full text-balance">
@@ -328,36 +494,37 @@ function Plugin() {
        
         
         <Toggle onChange={(e) => {
-          console.log('Even grid toggle clicked:', e.currentTarget.checked);
-          setEvenRowsColumns(e.currentTarget.checked);
+          const newEvenRowsColumns = e.currentTarget.checked;
+          console.log('Even grid toggle clicked:', newEvenRowsColumns);
           
-          if (e.currentTarget.checked && isExactFitEnabled) {
-            // If enabling even rows/columns and we're in perfect fit mode
-            setIsExactFitEnabled(false);
-            setShowDropdown(false);
-            setExactFit(false);
+          // Get valid steps based on the new setting
+          const validSteps = newEvenRowsColumns 
+            ? steps.filter(step => step % 2 === 0)
+            : steps;
             
-            // Reset to first available even step
-            const evenSteps = steps.filter(step => step % 2 === 0);
-            if (evenSteps.length > 0) {
-              setCellCount(evenSteps[0]);
-              emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: evenSteps[0].toString() });
-            }
-          } else if (!e.currentTarget.checked) {
-            // When disabling even rows/columns, restore perfect fit option if there are any
-            if (originalExactFits.length > 0) {
-              setExactFit(true);
-            }
+          console.log('Valid steps:', {
+            validSteps,
+            currentCellCount: cellCount,
+            newEvenRowsColumns
+          });
+            
+          if (validSteps.length > 0) {
+            const nearestStep = validSteps.reduce((prev, curr) => 
+              Math.abs(curr - cellCount) < Math.abs(prev - cellCount) ? curr : prev
+            );
+            
+            console.log('Selected nearest step:', nearestStep);
+            updateGrid(nearestStep, newEvenRowsColumns);
           }
         }} value={evenRowsColumns}>
           <Text>Even rows and columns</Text>
         </Toggle>
 
-        {exactFit && 
+        {exactFit && (!evenRowsColumns || (evenRowsColumns && originalExactFits.some(count => count % 2 === 0))) && (
           <Toggle onChange={handleExactFitChange} value={isExactFitEnabled}>
             <Text>{exactFitCount !== null ? `Show 1 perfect fit` : 'Show perfect fits'}</Text>
           </Toggle>
-        }
+        )}
       </div>
       {showDropdown && <VerticalSpace space="small" />}
       {showDropdown &&<CellCountPicker 
@@ -368,25 +535,28 @@ function Plugin() {
       {!isExactFitEnabled && <TextboxNumeric
           icon={<IconTidyGrid32 />}     
           variant='border'
-          maximum={Math.max(...steps, 300)} // Use the maximum of the largest step or 300
-          minimum={Math.min(...steps, 1)} // Use the minimum of the smallest step or 1
-          onValueInput={handleCellCountChange}
+          maximum={Math.max(...steps, 300)}
+          minimum={Math.min(...steps, 1)}
+          onValueInput={(value) => {
+            const numericValue = parseInt(value, 10);
+            const nearestStep = findClosestStep(numericValue);
+            debouncedCellCountUpdate(nearestStep);
+          }}
           value={cellCount.toString()}
-          disabled={isGridCreated} // Disable based on state
+          disabled={isGridCreated}
         />}
       {!isExactFitEnabled && <VerticalSpace space="small" />}
       <div>
       {!isExactFitEnabled && <RangeSlider
-       maximum={Math.max(...steps, 300)} // Use the maximum of the largest step or 300
-       minimum={Math.min(...steps, 1)} // Use the minimum of the smallest step or 1
-        value={cellCount.toString()}
-        onValueInput={(value) => {
-          const numericValue = parseInt(value, 10);
-          const closestStep = findClosestStep(numericValue);
-          setCellCount(closestStep);
-          emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: closestStep.toString() });
-        }}
-        disabled={isGridCreated}
+       maximum={Math.max(...steps, 300)}
+       minimum={2}
+       value={cellCount.toString()}
+       onValueInput={(value) => {
+         const numericValue = Math.max(2, parseInt(value, 10));
+         const nearestStep = findClosestStep(numericValue);
+         updateGrid(nearestStep);
+       }}
+       disabled={isGridCreated}
       />}
       </div>
       
