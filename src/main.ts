@@ -280,92 +280,105 @@ function checkSelection(): boolean {
   return true;
 }
 
-function updateGrid(cellCount: number, padding: number) {
-  if (!selectedFrame) {
-    console.warn('No frame selected for grid update');
+function updateGrid(cells: number, padding: number) {
+  console.log('autoPopulate', autoPopulate);
+  if (!selectedFrame || !figma.getNodeById(selectedFrame.id)) {
+    console.log('No selected frame');
     return;
   }
 
-  // Validate inputs more strictly
-  const validCellCount = Math.max(2, Math.floor(cellCount));
-  const validPadding = Math.max(0, Math.min(100, padding));
+  const frameWidth = Math.floor(selectedFrame.width);
+  const frameHeight = Math.floor(selectedFrame.height);
 
-  // Calculate grid dimensions
-  const grid = fitSquaresInRectangle(
-    selectedFrame.width,
-    selectedFrame.height,
-    validCellCount,
-    forceEvenGrid
-  );
-
-  // Validate grid calculations
-  if (!grid || 
-      isNaN(grid.cell_size) || 
-      isNaN(grid.used_width) || 
-      isNaN(grid.used_height) || 
-      grid.cell_size <= 0 || 
-      grid.used_width <= 0 || 
-      grid.used_height <= 0) {
-    console.error('Invalid grid dimensions:', grid);
+  if (isNaN(frameWidth) || isNaN(frameHeight) || frameWidth <= 0 || frameHeight <= 0) {
+    console.log('Invalid frame dimensions:', frameWidth, frameHeight);
     return;
   }
 
-  // Create or update grid frame
-  let gridFrame = selectedFrame.findChild(n => n.name === 'GridFrame') as FrameNode;
-  if (!gridFrame) {
-    gridFrame = figma.createFrame();
-    gridFrame.name = 'GridFrame';
+  const paddingValue = padding / 100; // Convert percentage to decimal
+  const availableWidth = frameWidth * (1 - paddingValue);
+  const availableHeight = frameHeight * (1 - paddingValue);
+
+  const grid = fitSquaresInRectangle(availableWidth, availableHeight, cells, forceEvenGrid);
+  const nrows = grid.nrows;
+  const ncols = grid.ncols;
+  const cell_size = grid.cell_size;
+  const gridWidth = grid.used_width;
+  const gridHeight = grid.used_height;
+
+  if (isNaN(gridWidth) || isNaN(gridHeight) || gridWidth <= 0 || gridHeight <= 0) {
+    console.log('Invalid grid dimensions:', gridWidth, gridHeight);
+    return;
+  }
+
+  const existingGridFrame = selectedFrame.findChild(n => n.name === 'GridFrame');
+  if (existingGridFrame) {
+    existingGridFrame.remove();
+  }
+
+  const gridFrame = figma.createFrame();
+  gridFrame.name = 'GridFrame';
+
+  if (gridWidth > 0 && gridHeight > 0) {
+    gridFrame.resize(gridWidth, gridHeight);
+  }
+
+  gridFrame.x = Math.floor((frameWidth - gridWidth) / 2);
+  gridFrame.y = Math.floor((frameHeight - gridHeight) / 2);
+
+  try {
     selectedFrame.appendChild(gridFrame);
+  } catch (error) {
+    console.log('Error appending gridFrame to selectedFrame:', error);
+    return;
   }
 
-  // Ensure dimensions are valid numbers and greater than 0
-  const finalWidth = Math.max(1, Math.floor(grid.used_width));
-  const finalHeight = Math.max(1, Math.floor(grid.used_height));
-
-  // Update grid frame with validated dimensions
-  gridFrame.resize(finalWidth, finalHeight);
-  gridFrame.x = Math.floor((selectedFrame.width - finalWidth) / 2);
-  gridFrame.y = Math.floor((selectedFrame.height - finalHeight) / 2);
-
-  // Create or update cells
-  const existingCells = gridFrame.findChildren(n => n.type === 'FRAME');
-  const totalCells = grid.nrows * grid.ncols;
-
-  // Remove extra cells if needed
-  while (existingCells.length > totalCells) {
-    existingCells.pop()?.remove();
-  }
-
-  // Create or update remaining cells with validated dimensions
-  for (let i = 0; i < totalCells; i++) {
-    const row = Math.floor(i / grid.ncols);
-    const col = i % grid.ncols;
-    
-    let cell: FrameNode;
-    if (i < existingCells.length) {
-        cell = existingCells[i] as FrameNode;
+  if (autoPopulate) {
+    const existingCells = gridFrame.findChildren(n => n.type === 'FRAME');
+    let colorOrder = Array.from({ length: selectedColors.length }, (_, i) => i);
+    if (randomizeColors) {
+      colorOrder = colorOrder.sort(() => Math.random() - 0.5);
+    }
+    console.log('colorOrder', colorOrder);
+  
+    const applyColor = (cell: SceneNode, index: number) => {
+      if ('fills' in cell) {
+        const colorIndex = colorOrder[index % selectedColors.length];
+        const opacityValue = parseFloat(selectedOpacities[colorIndex]);
+        cell.fills = [{
+          type: 'SOLID',
+          color: hexToRgb(selectedColors[colorIndex]),
+          opacity: isNaN(opacityValue) ? 1 : opacityValue / 100
+        }];
+      }
+    };
+  
+    if (existingCells.length === 0) {
+      for (let i = 0; i < nrows; i++) {
+        for (let j = 0; j < ncols; j++) {
+          const cell = figma.createFrame();
+          cell.resize(cell_size, cell_size);
+          cell.x = j * cell_size;
+          cell.y = i * cell_size;
+          applyColor(cell, i * ncols + j);
+          gridFrame.appendChild(cell);          
+        }
+      }
     } else {
-        cell = figma.createFrame();
-        cell.name = `Cell ${i + 1}`;
-        gridFrame.appendChild(cell);
+      existingCells.forEach((cell, index) => applyColor(cell, index));
     }
-
-    // Calculate cell dimensions with padding and ensure they're valid numbers
-    const cellWidth = Math.max(1, grid.cell_size * (1 - validPadding / 100));
-    const cellHeight = Math.max(1, grid.cell_size * (1 - validPadding / 100));
-
-    // Ensure we're passing valid numbers
-    if (isNaN(cellWidth) || isNaN(cellHeight)) {
-      console.error('Invalid cell dimensions:', { cellWidth, cellHeight });
-      continue;
-    }
-
-    cell.resizeWithoutConstraints(cellWidth, cellHeight);
-    
-    // Update position with validated coordinates
-    cell.x = col * grid.cell_size + (grid.cell_size * validPadding / 200);
-    cell.y = row * grid.cell_size + (grid.cell_size * validPadding / 200);
   }
+
+  let layoutGrids: LayoutGrid[] = [
+    {
+      pattern: 'GRID',
+      sectionSize: cell_size,
+      visible: true,
+      color: { r: 0.1, g: 0.1, b: 0.1, a: 0.1 }
+    }
+  ];
+
+  gridFrame.layoutGrids = layoutGrids;
 }
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
@@ -393,6 +406,8 @@ function getPossibleCellCounts(width: number, height: number, maxCells: number, 
   const targetWidth = Math.floor(width);
   const targetHeight = Math.floor(height);
 
+  console.log('Target dimensions:', { targetWidth, targetHeight, forceEvenGrid });
+
   for (let i = 1; i <= maxCells; i++) {
     const grid = fitSquaresInRectangle(width, height, i, forceEvenGrid);
     
@@ -406,15 +421,36 @@ function getPossibleCellCounts(width: number, height: number, maxCells: number, 
                       grid.used_height === targetHeight &&
                       grid.cell_size > 0;
                       
+    const hasEvenDimensions = grid.nrows % 2 === 0 && 
+                             grid.ncols % 2 === 0;
+
     if (isExactFit) {
-      exactFitCounts.push(i);
+      console.log(`Checking grid ${i}:`, {
+        dimensions: `${grid.used_width}x${grid.used_height}`,
+        target: `${targetWidth}x${targetHeight}`,
+        rows: grid.nrows,
+        cols: grid.ncols,
+        isEven: hasEvenDimensions,
+        cellSize: grid.cell_size
+      });
+
+      if (!forceEvenGrid || (forceEvenGrid && hasEvenDimensions)) {
+        exactFitCounts.push(i);
+        console.log(`Added ${i} to exact fits`);
+      }
     }
     
-    // Keep even grid counts for even rows/columns feature
-    if (grid.nrows % 2 === 0 && grid.ncols % 2 === 0) {
+    // Even grid counts
+    if (hasEvenDimensions) {
       evenGridCounts.push(i);
     }
   }
+  
+  console.log('Final counts:', {
+    possible: possibleCounts,
+    exact: exactFitCounts,
+    even: evenGridCounts
+  });
   
   return { possibleCounts, exactFitCounts, evenGridCounts };
 }
