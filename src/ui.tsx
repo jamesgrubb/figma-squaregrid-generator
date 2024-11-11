@@ -28,7 +28,7 @@ function Plugin() {
   const [steps, setSteps] = useState<number[]>([])
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
   const [autoPopulate, setAutoPopulate] = useState<boolean>(false);
-  const [isGridCreated, setIsGridCreated] = useState(true);
+  const [isGridCreated, setIsGridCreated] = useState(false);
   const defaultColors = ['2a5256','cac578','c69a94','57b59c','b1371b'];
   const [hexColors, setHexColors] = useState<string[]>(() => defaultColors.slice(0, 5));
   const [opacityPercent, setOpacityPercent] = useState<string[]>(() => Array(5).fill('100%'));
@@ -43,7 +43,9 @@ function Plugin() {
   const [originalExactFits, setOriginalExactFits] = useState<number[]>([]);
   const [evenRowsColumns, setEvenRowsColumns] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [evenExactFits, setEvenExactFits] = useState<number[]>([]);
+  const [perfectFitNumber, setPerfectFitNumber] = useState<number | null>(null);
+
   const numColorPickers = Math.min(cellCount, 5);
 
   const updateColors = (newHexColors: string[], newOpacityPercent: string[]) => {
@@ -150,6 +152,13 @@ function Plugin() {
         // Store original exact fits
         if (event.exactFitCounts) {
           setOriginalExactFits(event.exactFitCounts);
+          
+          // Calculate which exact fits work with even rows/columns
+          const evenFits = event.exactFitCounts.filter(count => {
+            const sqrt = Math.sqrt(count);
+            return Number.isInteger(sqrt) && sqrt % 2 === 0;
+          });
+          setEvenExactFits(evenFits);
         }
         
         // Filter steps based on evenFitsOnly
@@ -159,26 +168,21 @@ function Plugin() {
         
         setSteps(filteredSteps);
         
-        // Filter exact fits
-        const filteredExactCounts = evenFitsOnly 
-          ? event.exactFitCounts.filter(count => count % 2 === 0)
-          : event.exactFitCounts;
-
-        if (filteredExactCounts?.length > 0) {
-          setExactFit(true);
-          setDropdownOptions(filteredExactCounts.map(count => ({ value: count.toString() })));
-          setDropdownValue(filteredExactCounts[0]?.toString() || null);
-          setExactFitCount(filteredExactCounts.length === 1 ? filteredExactCounts[0] : null);
+        // Set perfect fit number if there's only one
+        if (event.exactFitCounts.length === 1) {
+          setPerfectFitNumber(event.exactFitCounts[0]);
+        } else {
+          setPerfectFitNumber(null);
         }
-        
-        // Adjust current cell count if needed
-        if (cellCount === 0 && filteredSteps.length > 0) {
-          setCellCount(filteredSteps[0]);
-        } else if (filteredSteps.length > 0) {
-          const nearestCellCount = findClosestStep(cellCount);
-          if (nearestCellCount !== cellCount) {
-            setCellCount(nearestCellCount);
-          }
+
+        // Handle exact fit visibility
+        if (event.exactFitCounts.length > 0) {
+          setExactFit(true);
+          setDropdownOptions(event.exactFitCounts.map(count => ({ value: count.toString() })));
+          setDropdownValue(event.exactFitCounts[0]?.toString() || null);
+        } else {
+          setExactFit(false);
+          setIsExactFitEnabled(false);
         }
       }
     };
@@ -286,7 +290,7 @@ function Plugin() {
 
   function handleCreateGrid() {
     emit('CREATE_GRID', { cellCount, padding })
-    setIsGridCreated(false);
+    setIsGridCreated(true);
   }
   const currentStepIndex = steps.indexOf(cellCount);
   console.log('currentStepIndex', currentStepIndex)
@@ -343,83 +347,104 @@ function Plugin() {
     }
   }, [evenRowsColumns]);
 
+  const handleEvenRowsColumnsChange = (e: h.JSX.TargetedEvent<HTMLInputElement>) => {
+    const newValue = e.currentTarget.checked;
+    setIsLoading(true);
+    setEvenRowsColumns(newValue);
+    
+    // Only disable exact fit if there are no valid even exact fits
+    if (newValue && !evenExactFits.includes(cellCount)) {
+      setIsExactFitEnabled(false);
+    }
+    
+    requestAnimationFrame(() => {
+      if (cellCount > 0) {
+        emit('CREATE_GRID', { cellCount, padding });
+      }
+      setIsLoading(false);
+    });
+  };
+
+  // Determine if we should show the exact fit toggle
+  const shouldShowExactFitToggle = () => {
+    if (!exactFit) return false;
+    
+    if (evenRowsColumns) {
+      // If there's one perfect fit, check if it's in evenExactFits
+      return perfectFitNumber 
+        ? evenExactFits.includes(perfectFitNumber)
+        : false;
+    }
+    
+    return true;
+  };
+
   return (
     <div className="relative h-full text-balance">
-    {!isGridCreated && <Container space="medium">
+    {isGridCreated && <Container space="medium">
       
       <VerticalSpace space="large" />
 
-      <Columns className="flex items-center justify-between">
-        <div>
-          <Text>Grid Cells</Text>
-        </div>
-      </Columns>
-      <VerticalSpace space="medium" />
       <div className="flex flex-col gap-2">
-        <Toggle onChange={(e) => {
-          console.log('Toggle clicked, new value:', e.currentTarget.checked);
-          setEvenFitsOnly(e.currentTarget.checked);
-        }} value={evenFitsOnly}>
+        <Toggle 
+          onChange={(e) => setEvenFitsOnly(e.currentTarget.checked)}
+          value={evenFitsOnly}
+        >
           <Text>Even fits only</Text>
         </Toggle>
         
         <Toggle 
-          onChange={(e) => {
-            const newValue = e.currentTarget.checked;
-            setIsLoading(true);
-            setEvenRowsColumns(newValue);
-            
-            // Use requestAnimationFrame to prevent UI blocking
-            requestAnimationFrame(() => {
-              if (cellCount > 0) {
-                emit('CREATE_GRID', { cellCount, padding });
-              }
-              setIsLoading(false);
-            });
-          }} 
+          onChange={handleEvenRowsColumnsChange}
           value={evenRowsColumns}
           disabled={isLoading}
         >
           <Text>{isLoading ? 'Calculating...' : 'Even rows and columns'}</Text>
         </Toggle>
 
-        {exactFit && !evenRowsColumns && 
-          <Toggle onChange={handleExactFitChange} value={isExactFitEnabled}>
-            <Text>{exactFitCount !== null ? `Show 1 perfect fit` : 'Show perfect fits'}</Text>
+        {shouldShowExactFitToggle() && (
+          <Toggle 
+            onChange={handleExactFitChange} 
+            value={isExactFitEnabled}
+          >
+            <Text>
+              {perfectFitNumber ? 'Show 1 perfect fit' : 'Show perfect fits'}
+            </Text>
           </Toggle>
-        }
+        )}
+
+        {/* Cell count input - either dropdown or numeric input with slider */}
+        {isExactFitEnabled ? (
+          <CellCountPicker 
+            cellCountOptions={dropdownOptions} 
+            dropdownCellCountChange={handleDropdownCellCountChange}  
+            dropdownValue={dropdownValue}
+          />
+        ) : (
+
+          <div>
+            <TextboxNumeric
+              icon={<IconTidyGrid32 />}     
+              variant='border'
+              maximum={Math.max(...steps, 300)}
+              minimum={Math.min(...steps, 1)}
+              onValueInput={handleCellCountChange}
+              value={cellCount.toString()}
+            />
+            <RangeSlider
+              maximum={Math.max(...steps, 300)}
+              minimum={Math.min(...steps, 1)}
+              value={cellCount.toString()}
+              onValueInput={(value) => {
+                const numericValue = parseInt(value, 10);
+                const closestStep = findClosestStep(numericValue);
+                setCellCount(closestStep);
+                emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: closestStep.toString() });
+              }}
+            />
+          </div>
+        )}
       </div>
-      {showDropdown && <VerticalSpace space="small" />}
-      {showDropdown &&<CellCountPicker 
-        cellCountOptions={dropdownOptions} 
-        dropdownCellCountChange={handleDropdownCellCountChange}  
-        dropdownValue={dropdownValue} />}
-        <VerticalSpace space="small" />
-      {!isExactFitEnabled && <TextboxNumeric
-          icon={<IconTidyGrid32 />}     
-          variant='border'
-          maximum={Math.max(...steps, 300)} // Use the maximum of the largest step or 300
-          minimum={Math.min(...steps, 1)} // Use the minimum of the smallest step or 1
-          onValueInput={handleCellCountChange}
-          value={cellCount.toString()}
-          disabled={isGridCreated} // Disable based on state
-        />}
-      {!isExactFitEnabled && <VerticalSpace space="small" />}
-      <div>
-      {!isExactFitEnabled && <RangeSlider
-       maximum={Math.max(...steps, 300)} // Use the maximum of the largest step or 300
-       minimum={Math.min(...steps, 1)} // Use the minimum of the smallest step or 1
-        value={cellCount.toString()}
-        onValueInput={(value) => {
-          const numericValue = parseInt(value, 10);
-          const closestStep = findClosestStep(numericValue);
-          setCellCount(closestStep);
-          emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: closestStep.toString() });
-        }}
-        disabled={isGridCreated}
-      />}
-      </div>
-      
+
       <VerticalSpace space="medium" />
       <Text>Padding</Text>
       <VerticalSpace space="small" />
@@ -430,23 +455,27 @@ function Plugin() {
         suffix="%"
         onValueInput={handlePaddingChange}
         value={padding.toString()} 
-        disabled={isGridCreated} // Disable based on state
-        />      
+      />      
       <VerticalSpace space="small" />
       <RangeSlider
         maximum={100}
         minimum={0}
         onValueInput={handlePaddingChange}
         value={padding.toString()}
-        disabled={isGridCreated} // Disable based on state
       />
       <VerticalSpace space="large" />
       <Columns space="small">
-  <Toggle onChange={handleAutoPopulateChange} value={autoPopulate}>
+  <Toggle 
+    onChange={handleAutoPopulateChange} 
+    value={autoPopulate}
+  >
     <Text>Fill</Text>
   </Toggle>
   {autoPopulate && cellCount > 5 && (
-    <Toggle value={randomizeColors} onValueChange={setRandomizeColors}>
+    <Toggle 
+      value={randomizeColors} 
+      onValueChange={setRandomizeColors}
+    >
       <Text>Random Pattern</Text>
     </Toggle>
   )}
@@ -466,8 +495,7 @@ function Plugin() {
       
     </Container>}
      
-      
-    {isGridCreated && (
+    {!isGridCreated && (
         <Container className="absolute inset-0 flex flex-col justify-between p-4" space="medium">    
           <div>
             <Text className="h-min">
