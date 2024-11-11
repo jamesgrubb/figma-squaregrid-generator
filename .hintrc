@@ -1,5 +1,7 @@
 {
-  "extends": [
-    "development"],
-    "hints" : {"no-inline-styles": "off"}
+  "extends": ["web-recommended"],
+  "hints": {
+    "no-inline-styles": "off",
+    "physical-property-detected": "off"
+  }
 }

@@ -14,6 +14,7 @@ import {
   IconWarning32,
   TextboxNumeric,
   Muted,
+  Bold,
   Columns // We'll create this component
 } from '@create-figma-plugin/ui'
 import { emit, on } from '@create-figma-plugin/utilities'
@@ -349,7 +350,7 @@ function Plugin() {
           </Toggle>
         )}
 
-        {/* Cell count input - either dropdown, numeric input with slider, or single perfect fit input */}
+    
         {isExactFitEnabled ? (
           perfectFitNumber ? (
             // Single perfect fit case
@@ -370,6 +371,8 @@ function Plugin() {
         ) : (
           // Regular numeric input case
           <div>
+            <Text><Bold>Cell Count</Bold></Text>
+            <VerticalSpace space="small" />
             <TextboxNumeric
               icon={<IconTidyGrid32 />}     
               variant='border'

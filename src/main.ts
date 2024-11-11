@@ -1,3 +1,4 @@
+
 /// <reference types="@figma/plugin-typings" />
 
 import { showUI, on, emit } from '@create-figma-plugin/utilities';
@@ -16,8 +17,10 @@ import { EventHandler } from '@create-figma-plugin/utilities';
 import debounce from 'lodash/debounce';
 
 let selectedFrame: FrameNode | null = null;
+
 let lastWidth: number = 0;
 let lastHeight: number = 0;
+
 let lastCells: number = 0;
 let autoPopulate: boolean = false;
 let selectedFrameId: string | null = null;
@@ -26,7 +29,7 @@ let isGridCreated: boolean = false;
 let forceEvenGrid: boolean = false;
 export default function () {
   showUI({
-    height: 280,
+    height: 140,
     width: 240
   });
 

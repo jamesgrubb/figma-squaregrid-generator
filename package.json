@@ -10,7 +10,7 @@
     "@create-figma-plugin/build": "^3.2.0",
     "@create-figma-plugin/tsconfig": "^3.2.0",
     "@figma/plugin-typings": "^1.90.0",
-    "@hint/hint-no-inline-styles": "^1.0.19",
+    
     "@types/lodash": "^4.17.9",
     "concurrently": ">=8",
     "tailwindcss": ">=3",
