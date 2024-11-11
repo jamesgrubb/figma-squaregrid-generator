@@ -325,85 +325,86 @@ function Plugin() {
 
   return (
     <div className="relative h-full text-balance">
-    {isGridCreated && <Container space="medium">
+      {isGridCreated && <Container space="medium">
       
-      <VerticalSpace space="large" />
-
-      <div className="flex flex-col gap-2">
-        
-        <Toggle 
-          onChange={handleEvenRowsColumnsChange}
-          value={evenRowsColumns}
-          disabled={isLoading}
-        >
-          <Text>{isLoading ? 'Calculating...' : 'Even rows and columns'}</Text>
-        </Toggle>
-
-        {shouldShowExactFitToggle() && (
-          <Toggle 
-            onChange={handleExactFitChange} 
-            value={isExactFitEnabled}
-          >
-            <Text>
-              {perfectFitNumber ? 'Show 1 perfect fit' : 'Show perfect fits'}
-            </Text>
-          </Toggle>
-        )}
-
-    
-        {isExactFitEnabled ? (
-          perfectFitNumber ? (
-            // Single perfect fit case
-            <TextboxNumeric
-              icon={<IconTidyGrid32 />}     
-              variant='border'
-              disabled={true}
-              value={perfectFitNumber.toString()}
-            />
-          ) : (
-            // Multiple perfect fits case
-            <CellCountPicker 
-              cellCountOptions={dropdownOptions} 
-              dropdownCellCountChange={handleDropdownCellCountChange}  
-              dropdownValue={dropdownValue}
-            />
-          )
-        ) : (
-          // Regular numeric input case
-          <div>
-            <Text><Bold>Cell Count</Bold></Text>
+        <div className="flex flex-col justify-between h-full gap-2 pt-2 pb-4">
+          <div> 
+            <Text><Bold>Cell Count</Bold></Text>        
             <VerticalSpace space="small" />
-            <TextboxNumeric
-              icon={<IconTidyGrid32 />}     
-              variant='border'
-              maximum={Math.max(...steps, 300)}
-              minimum={Math.min(...steps, 1)}
-              onValueInput={handleCellCountChange}
-              value={cellCount?.toString() ?? '0'}
-            />
-            <RangeSlider
-              maximum={Math.max(...steps, 300)}
-              minimum={Math.min(...steps, 1)}
-              value={cellCount?.toString() ?? '0'}
-              onValueInput={(value) => {
-                const numericValue = parseInt(value, 10);
-                const closestStep = findClosestStep(numericValue);
-                setCellCount(closestStep);
-                emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: closestStep.toString() });
-              }}
-            />
-          </div>
-        )}
-      </div>
-    </Container>}
 
-    {!isGridCreated && (
-        <Container className="absolute inset-0 flex flex-col justify-between p-4" space="medium">    
-          <div>
-            <Text className="h-min">
-              <Muted>This tool forces a square grid based on the size of its outer frame.</Muted>
-            </Text>
+          
+          {!isExactFitEnabled ? (
+            <div>
+              <TextboxNumeric
+                icon={<IconTidyGrid32 />}     
+                variant='border'
+                maximum={Math.max(...steps, 300)}
+                minimum={Math.min(...steps, 1)}
+                onValueInput={handleCellCountChange}
+                value={cellCount?.toString() ?? '0'}
+              />
+              <RangeSlider
+                maximum={Math.max(...steps, 300)}
+                minimum={Math.min(...steps, 1)}
+                value={cellCount?.toString() ?? '0'}
+                onValueInput={(value) => {
+                  const numericValue = parseInt(value, 10);
+                  const closestStep = findClosestStep(numericValue);
+                  setCellCount(closestStep);
+                  emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: closestStep.toString() });
+                }}
+              />
+              <VerticalSpace space="small" />
+            </div>
+          ) : (
+            <div>
+              {perfectFitNumber ? (
+                
+                  <div><VerticalSpace space="large" /><TextboxNumeric
+                    icon={<IconTidyGrid32 />}
+                    variant='border'
+                    disabled={true}
+                    value={perfectFitNumber.toString()} /><VerticalSpace space="small" /></div>
+                
+              ) : (
+                <CellCountPicker 
+                  cellCountOptions={dropdownOptions} 
+                  dropdownCellCountChange={handleDropdownCellCountChange}  
+                  dropdownValue={dropdownValue}
+                />
+              )}
+            </div>
+          )}
           </div>
+          <div className="flex flex-col space-y-1">
+            <Toggle
+              onChange={handleEvenRowsColumnsChange}
+              value={evenRowsColumns}
+              disabled={isLoading}
+            >
+              <Text>{isLoading ? 'Calculating...' : 'Even rows and columns'}</Text>
+            </Toggle>
+        
+            {shouldShowExactFitToggle() && (
+              <Toggle
+                onChange={handleExactFitChange}
+                value={isExactFitEnabled}
+              >
+                <Text>
+                  {perfectFitNumber ? 'Show 1 perfect fit' : 'Show perfect fits'}
+                </Text>
+              </Toggle>
+            
+          )}
+          </div>
+        </div>
+      </Container>}
+
+      {!isGridCreated && (
+        <Container className="absolute inset-0 flex flex-col justify-between p-4" space="medium">    
+          <Text className="h-min">
+            <Muted>This tool forces a square grid based on the size of its outer frame.</Muted>
+          </Text>
           
           {isEnabled ? (
             <Button 
