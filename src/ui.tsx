@@ -1,7 +1,6 @@
 import { h } from 'preact'
 import { useState, useEffect } from 'preact/hooks'
 import '!./output.css';
-import debounce from 'lodash/debounce';
 import { 
   IconTidyGrid32,
   Toggle,
@@ -17,10 +16,9 @@ import {
   Muted,
   Columns // We'll create this component
 } from '@create-figma-plugin/ui'
-import { ColorPicker } from './components/ColorPicker'
-import { CellCountPicker } from './components/CellCountPicker'
 import { emit, on } from '@create-figma-plugin/utilities'
-import { FrameSelectionHandler, AutoPopulateHandler, PossibleCellCountsHandler, UpdateColorsHandler, CellCountHandler, ExactFitHandler } from './types'
+import { FrameSelectionHandler, AutoPopulateHandler, PossibleCellCountsHandler, CellCountHandler, ExactFitHandler } from './types'
+import { CellCountPicker } from './components/CellCountPicker';
 
 function Plugin() {
   const [cellCount, setCellCount] = useState<number | null>(null);
@@ -29,16 +27,16 @@ function Plugin() {
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
   const [autoPopulate, setAutoPopulate] = useState<boolean>(false);
   const [isGridCreated, setIsGridCreated] = useState(false);
-  const defaultColors = ['2a5256','cac578','c69a94','57b59c','b1371b'];
-  const [hexColors, setHexColors] = useState<string[]>(() => defaultColors.slice(0, 5));
-  const [opacityPercent, setOpacityPercent] = useState<string[]>(() => Array(5).fill('100%'));
+  
+  
+  
   const [dropdownValue, setDropdownValue] = useState<null | string>(null);
   const [dropdownOptions, setDropdownOptions] = useState<Array<{ value: string }>>([{ value: '0' },]);
   const [exactFit, setExactFit] = useState<boolean>(false);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [exactFitCount, setExactFitCount] = useState<number | null>(null);
   const [isExactFitEnabled, setIsExactFitEnabled] = useState(false);
-  const [randomizeColors, setRandomizeColors] = useState(false)
+  
   const [evenFitsOnly, setEvenFitsOnly] = useState<boolean>(false);
   const [originalExactFits, setOriginalExactFits] = useState<number[]>([]);
   const [evenRowsColumns, setEvenRowsColumns] = useState<boolean>(false);
@@ -48,24 +46,7 @@ function Plugin() {
 
   const numColorPickers = cellCount != null ? Math.min(cellCount, 5) : 5;
 
-  const updateColors = (newHexColors: string[], newOpacityPercent: string[]) => {
-    console.log('updateColors called with:', { newHexColors, newOpacityPercent });
-    emit<UpdateColorsHandler>('UPDATE_COLORS', { hexColors: newHexColors, opacityPercent: newOpacityPercent });
-  };
-
-
-  useEffect(() => {
-    emit('UPDATE_GRID', { cellCount, padding })
-   
-    console.log('Emitting UPDATE_GRID and UPDATE_COLORS');
-  }, [cellCount, padding, hexColors, opacityPercent])
-
-  useEffect(() => {
-    console.log('Color effect running. hexColors:', hexColors, 'opacityPercent:', opacityPercent);
-    if (hexColors.length > 0 && opacityPercent.length > 0) {
-      updateColors(hexColors, opacityPercent);
-    }
-  }, [hexColors, opacityPercent]);
+ 
 
   const handleCellCountChange = (value: string) => {
     const numberValue = parseInt(value, 10);
@@ -92,39 +73,17 @@ function Plugin() {
   console.log(isEnabled)
 
   useEffect(() => {
-    emit('RANDOMIZE_COLORS', { randomize: randomizeColors })
-  }, [randomizeColors])
-
-  useEffect(() => {   
     on<FrameSelectionHandler>('FRAME_SELECTED', (event) => {
        console.log('Frame selected event received:', event);
       setIsEnabled(event.isFrameSelected);     
     });
   }, [isEnabled]);
 
-  useEffect(() => {
-    // Update hexColors and opacityPercent when cellCount changes
-    setHexColors(prevColors => {
-      const newColors = [...prevColors];
-      while (newColors.length < numColorPickers) {
-        newColors.push(defaultColors[newColors.length % defaultColors.length]);
-      }
-      return newColors.slice(0, numColorPickers);
-    });
+  
 
-    setOpacityPercent(prevOpacities => {
-      const newOpacities = [...prevOpacities];
-      while (newOpacities.length < numColorPickers) {
-        newOpacities.push('100%');
-      }
-      return newOpacities.slice(0, numColorPickers);
-    });
-  }, [cellCount, numColorPickers]);
+  
 
-  useEffect(() => {
-    // Emit color updates whenever hexColors or opacityPercent change
-    emit('UPDATE_COLORS', { hexColors, opacityPercent });
-  }, [hexColors, opacityPercent]);
+  
 
   useEffect(() => {
     console.log('evenFitsOnly changed to:', evenFitsOnly);
@@ -180,29 +139,9 @@ function Plugin() {
     on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', cellCountHandler);
   }, []); // Only run once on mount
 
-  useEffect(() => {
-    on<UpdateColorsHandler>('UPDATE_COLORS', function({ hexColors, opacityPercent }) {
-      // Only update the state if the colors have actually changed
-      if (JSON.stringify(hexColors) !== JSON.stringify(hexColors) ||
-          JSON.stringify(opacityPercent) !== JSON.stringify(opacityPercent)) {
-        setHexColors(hexColors);
-        setOpacityPercent(opacityPercent);
-      }
-    });
-    
-    return () => {
-      // Clean up the event listener
-      // You might need to use a method provided by your event system to remove listeners
-      // For example: off('UPDATE_COLORS', colorUpdateHandler);
-    };
-  }, []);
+  
 
   console.log('dropdown values',dropdownValue)
-  const debouncedUpdateColors = debounce((newHexColors: string[], newOpacityPercent: string[]) => {
-    console.log('Debounced UPDATE_COLORS called with:', { newHexColors, newOpacityPercent });
-    emit('UPDATE_COLORS', { hexColors: newHexColors, opacityPercent: newOpacityPercent });
-  }, 300);
-
 
   const handleDropdownCellCountChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
     const target = event.currentTarget as HTMLInputElement;
@@ -213,32 +152,6 @@ function Plugin() {
     emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: newValue });
   };
 
-  const handleAutoPopulateChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
-    const target = event.currentTarget;
-    const newValue = target.checked;
-    setAutoPopulate(newValue);
-    emit<AutoPopulateHandler>('AUTO_POPULATE', { autoPopulate: newValue });
-  };
-
-  function handleHexColorInput(index: number, event: h.JSX.TargetedEvent<HTMLInputElement>) {
-    const newColor = event.currentTarget.value;
-    setHexColors(prevColors => {
-      const newColors = [...prevColors];
-      newColors[index] = newColor;
-      console.log('New hexColors after input:', newColors);
-      return newColors;
-    });
-  }
-
-  function handleOpacityInput(index: number, event: h.JSX.TargetedEvent<HTMLInputElement>) {
-    const newOpacity = event.currentTarget.value;
-    setOpacityPercent(prevOpacities => {
-      const newOpacities = [...prevOpacities];
-      newOpacities[index] = newOpacity;
-      console.log('New opacityPercent after input:', newOpacities);
-      return newOpacities;
-    });
-  }
 
   // ... rest of your component code
 
@@ -289,10 +202,6 @@ function Plugin() {
   const minStep = steps.length > 0 ? Math.min(...steps) : 0; // Fallback to 0 if no steps
   const maxStep = steps.length > 0 ? Math.max(...steps) : 300; // Fallback to 300 if no steps
 
-  useEffect(() => {
-    console.log('Color effect running. hexColors:', hexColors, 'opacityPercent:', opacityPercent);
-    debouncedUpdateColors(hexColors, opacityPercent);
-  }, [hexColors, opacityPercent]);
 
   useEffect(() => {
     // Re-emit the cell count to trigger recalculation with new evenFitsOnly value
@@ -548,38 +457,11 @@ function Plugin() {
         onValueInput={handlePaddingChange}
         value={padding.toString()}
       />
-      <VerticalSpace space="large" />
-      <Columns space="small">
-  <Toggle 
-    onChange={handleAutoPopulateChange} 
-    value={autoPopulate}
-  >
-    <Text>Fill</Text>
-  </Toggle>
-  {autoPopulate && cellCount && cellCount > 5 && (
-    <Toggle 
-      onChange={(event: h.JSX.TargetedEvent<HTMLInputElement>) => setRandomizeColors(event.currentTarget.checked)}
-      value={randomizeColors}
-    >
-      <Text>Random Pattern</Text>
-    </Toggle>
-  )}
-</Columns>
-      <VerticalSpace space="small" />
-      {autoPopulate && <div className="flex flex-col justify-between">
-  {[...Array(numColorPickers)].map((_, index) => (
-    <ColorPicker
-      key={index}
-      color={hexColors[index] || defaultColors[index % defaultColors.length]}
-      opacity={opacityPercent[index] || '100%'}
-      handleHexColorInput={(event) => handleHexColorInput(index, event)}
-      handleOpacityInput={(event) => handleOpacityInput(index, event)}
-    />
-  ))}
-</div>}
-      
+
+
+
     </Container>}
-     
+
     {!isGridCreated && (
         <Container className="absolute inset-0 flex flex-col justify-between p-4" space="medium">    
           <div>

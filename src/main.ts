@@ -6,12 +6,10 @@ import {
   FrameSelectionHandler, 
   AutoPopulateHandler, 
   CreateGridHandler, 
-  UpdateColorsHandler, 
   CellCountHandler, 
   ExactFitHandler, 
   PerfectFitsHandler, 
   SinglePerfectFitHandler, 
-  RandomizeColorsHandler, 
   EvenGridHandler 
 } from './types';
 import { EventHandler } from '@create-figma-plugin/utilities';
@@ -26,10 +24,6 @@ let autoPopulate: boolean = false;
 let selectedFrameId: string | null = null;
 let isNewFrameSelected: boolean = false;
 let isGridCreated: boolean = false;
-let selectedColors: string[] = ['2a5256','cac578','c69a94','57b59c','b1371b'];
-let selectedOpacities: string[] = ['100%','100%','100%','100%','100%'];
-let randomizeColors: boolean = false;
-let lastEmittedColors: { hexColors: string[], opacityPercent: string[] } | null = null;
 let forceEvenGrid: boolean = false;
 export default function () {
   showUI({
@@ -43,29 +37,6 @@ export default function () {
     evenGridCounts: number[];
   };
 
-  const debouncedUpdateColors = debounce((hexColors: string[], opacityPercent: string[]) => {
-    console.log('Debounced update colors:', { hexColors, opacityPercent });
-    
-    // Always update if colors have changed or randomization state has changed
-    if (JSON.stringify({ hexColors, opacityPercent }) !== JSON.stringify(lastEmittedColors) || randomizeColors) {
-      console.log('Colors or randomization changed, applying to nodes');
-      lastEmittedColors = { hexColors, opacityPercent };
-      
-      // Update the selected colors and opacities
-      selectedColors = hexColors;
-      selectedOpacities = opacityPercent;
-      
-      // Apply colors to your Figma nodes here
-      if (selectedFrame && autoPopulate) {
-        applyColorsToNodes(hexColors, opacityPercent);
-      }
-      
-      // Remove this line to prevent the infinite loop
-      // emit<UpdateColorsHandler>('UPDATE_COLORS', { hexColors, opacityPercent });
-    } else {
-      console.log('No change in colors or randomization, skipping update');
-    }
-  }, 50);
 
   const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
     updateGrid(cellCount, padding);
@@ -79,17 +50,7 @@ export default function () {
     emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected });
   });
 
-  on<RandomizeColorsHandler>('RANDOMIZE_COLORS', function({ randomize }) {
-    console.log('Randomize colors changed to:', randomize);
-    randomizeColors = randomize;
-    if (selectedFrame && autoPopulate) {
-      console.log('Forcing re-application of colors due to randomize change');
-      applyColorsToNodes(selectedColors, selectedOpacities);
-      // Remove this line to prevent potential loops
-      // emit<UpdateColorsHandler>('UPDATE_COLORS', { hexColors: selectedColors, opacityPercent: selectedOpacities });
-    }
-  });
-
+  
   on<GridHandler>('UPDATE_GRID', function({ cellCount, padding }) {
     if (isGridCreated && checkSelection()) {
       debouncedUpdateGrid(cellCount, padding);
@@ -133,53 +94,7 @@ export default function () {
     }
   });
   
-  function applyColorsToNodes(hexColors: string[], opacityPercent: string[]) {
-    if (!selectedFrame) {
-      console.log('No selected frame, cannot apply colors');
-      return;
-    }
   
-    const gridFrame = selectedFrame.findChild(n => n.name === 'GridFrame') as FrameNode | null;
-    if (!gridFrame) {
-      console.log('No GridFrame found, cannot apply colors');
-      return;
-    }
-  
-    const cells = gridFrame.findChildren(n => n.type === 'FRAME');
-    console.log(`Applying colors to ${cells.length} cells`);
-    
-    // Create a color order array based on the number of cells
-    let colorOrder = Array.from({ length: cells.length }, (_, i) => i % hexColors.length);
-    
-    if (randomizeColors) {
-      console.log('Randomizing colors');
-      colorOrder = colorOrder.sort(() => Math.random() - 0.5);
-    } else {
-      console.log('Not randomizing colors');
-    }
-  
-    console.log('Color order:', colorOrder);
-  
-    cells.forEach((cell, index) => {
-      if ('fills' in cell) {
-        const colorIndex = colorOrder[index];
-        const opacityValue = parseFloat(opacityPercent[colorIndex]);
-        const newColor = hexToRgb(hexColors[colorIndex]);
-        cell.fills = [{
-          type: 'SOLID',
-          color: newColor,
-          opacity: isNaN(opacityValue) ? 1 : opacityValue / 100
-        }];
-        console.log(`Cell ${index}: Applied color ${hexColors[colorIndex]} with opacity ${opacityValue}`);
-      }
-    });
-  }
-
-  on<UpdateColorsHandler>('UPDATE_COLORS', function({ hexColors, opacityPercent }) {
-    console.log('UPDATE_COLORS received in main thread:', { hexColors, opacityPercent });
-    debouncedUpdateColors(hexColors, opacityPercent);
-  });
-
   figma.on('selectionchange', () => {
     const isFrameSelected = checkSelectionWithoutSideEffects();
     emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected });
@@ -349,41 +264,7 @@ function updateGrid(cells: number, padding: number) {
     return;
   }
 
-  if (autoPopulate) {
-    const existingCells = gridFrame.findChildren(n => n.type === 'FRAME');
-    let colorOrder = Array.from({ length: selectedColors.length }, (_, i) => i);
-    if (randomizeColors) {
-      colorOrder = colorOrder.sort(() => Math.random() - 0.5);
-    }
-    console.log('colorOrder', colorOrder);
   
-    const applyColor = (cell: SceneNode, index: number) => {
-      if ('fills' in cell) {
-        const colorIndex = colorOrder[index % selectedColors.length];
-        const opacityValue = parseFloat(selectedOpacities[colorIndex]);
-        cell.fills = [{
-          type: 'SOLID',
-          color: hexToRgb(selectedColors[colorIndex]),
-          opacity: isNaN(opacityValue) ? 1 : opacityValue / 100
-        }];
-      }
-    };
-  
-    if (existingCells.length === 0) {
-      for (let i = 0; i < nrows; i++) {
-        for (let j = 0; j < ncols; j++) {
-          const cell = figma.createFrame();
-          cell.resize(cell_size, cell_size);
-          cell.x = j * cell_size;
-          cell.y = i * cell_size;
-          applyColor(cell, i * ncols + j);
-          gridFrame.appendChild(cell);          
-        }
-      }
-    } else {
-      existingCells.forEach((cell, index) => applyColor(cell, index));
-    }
-  }
 
   let layoutGrids: LayoutGrid[] = [
     {

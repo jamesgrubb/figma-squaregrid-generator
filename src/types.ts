@@ -29,11 +29,6 @@ export interface CreateGridHandler {
   handler: (options: { cellCount: number, padding: number }) => void
 }
 
-export interface UpdateColorsHandler extends EventHandler {
-  name: 'UPDATE_COLORS'
-  handler: (data: { hexColors: string[], opacityPercent: string[] }) => void
-}
-
 export interface CellCountHandler {
   name: 'CELL_COUNT_CHANGE'
   handler: (data: { cellCount: string }) => void
@@ -54,10 +49,6 @@ export interface SinglePerfectFitHandler extends EventHandler {
   handler: (data: { singlePerfectFit: number | null }) => void
 }
 
-export interface RandomizeColorsHandler {
-  name: 'RANDOMIZE_COLORS'
-  handler: (data: { randomize: boolean }) => void
-}
 
 export interface EvenGridHandler {
   name: 'EVEN_GRID'
