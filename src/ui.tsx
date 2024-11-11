@@ -412,15 +412,26 @@ function Plugin() {
           </Toggle>
         )}
 
-        {/* Cell count input - either dropdown or numeric input with slider */}
+        {/* Cell count input - either dropdown, numeric input with slider, or single perfect fit input */}
         {isExactFitEnabled ? (
-          <CellCountPicker 
-            cellCountOptions={dropdownOptions} 
-            dropdownCellCountChange={handleDropdownCellCountChange}  
-            dropdownValue={dropdownValue}
-          />
+          perfectFitNumber ? (
+            // Single perfect fit case
+            <TextboxNumeric
+              icon={<IconTidyGrid32 />}     
+              variant='border'
+              disabled={true}
+              value={perfectFitNumber.toString()}
+            />
+          ) : (
+            // Multiple perfect fits case
+            <CellCountPicker 
+              cellCountOptions={dropdownOptions} 
+              dropdownCellCountChange={handleDropdownCellCountChange}  
+              dropdownValue={dropdownValue}
+            />
+          )
         ) : (
-
+          // Regular numeric input case
           <div>
             <TextboxNumeric
               icon={<IconTidyGrid32 />}     
