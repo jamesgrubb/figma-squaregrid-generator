@@ -492,9 +492,25 @@ function fitSquaresInRectangle(x: number, y: number, n: number, forceEvenGrid: b
   };
 
   if (forceEvenGrid) {
-    const pairs = getFactorPairs(adjustedN).filter(([rows, cols]) => 
-      (rows % 2 === 0 && cols % 2 === 0)
-    );
+    const pairs = getFactorPairs(adjustedN)
+      .filter(([rows, cols]) => {
+        // Both dimensions must be even
+        const hasEvenDimensions = rows % 2 === 0 && cols % 2 === 0;
+        
+        // Get max dimension for each pair
+        const maxDim = Math.max(rows, cols);
+        const minDim = Math.min(rows, cols);
+        
+        // Set column limits based on row count (or vice versa)
+        if (minDim === 2) return maxDim <= 6;
+        if (minDim === 4) return maxDim <= 12;
+        if (minDim === 6) return maxDim <= 16;
+        if (minDim === 8) return maxDim <= 20;
+        if (minDim === 10) return maxDim <= 24;
+        if (minDim <= 16) return maxDim <= 30;
+        
+        return maxDim <= 40; // Absolute maximum for any dimension
+      });
 
     if (pairs.length === 0) {
       return defaultConfig; // Return default if no even pairs found
