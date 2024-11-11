@@ -19,7 +19,6 @@ let selectedFrame: FrameNode | null = null;
 let lastWidth: number = 0;
 let lastHeight: number = 0;
 let lastCells: number = 0;
-let lastPadding: number = 0;
 let autoPopulate: boolean = false;
 let selectedFrameId: string | null = null;
 let isNewFrameSelected: boolean = false;
@@ -38,8 +37,8 @@ export default function () {
   };
 
 
-  const debouncedUpdateGrid = debounce((cellCount: number, padding: number) => {
-    updateGrid(cellCount, padding);
+  const debouncedUpdateGrid = debounce((cellCount: number,) => {
+    updateGrid(cellCount);
   }, 50);
 
   const initialIsFrameSelected = checkSelectionWithoutSideEffects();
@@ -51,28 +50,26 @@ export default function () {
   });
 
   
-  on<GridHandler>('UPDATE_GRID', function({ cellCount, padding }) {
+  on<GridHandler>('UPDATE_GRID', function({ cellCount }) {
     if (isGridCreated && checkSelection()) {
-      debouncedUpdateGrid(cellCount, padding);
-      lastCells = cellCount;
-      lastPadding = padding;
+      debouncedUpdateGrid(cellCount);
+      lastCells = cellCount;      
     }
   });
 
   on<AutoPopulateHandler>('AUTO_POPULATE', function({ autoPopulate: newAutoPopulate }) {
     autoPopulate = newAutoPopulate;
     if (selectedFrame && !isNewFrameSelected) {
-      updateGrid(lastCells, lastPadding);
+      updateGrid(lastCells);
     }
     figma.ui.resize(240, autoPopulate ? 370 : 280);
   });
 
-  on<CreateGridHandler>('CREATE_GRID', function({ cellCount, padding }) {
+  on<CreateGridHandler>('CREATE_GRID', function({ cellCount }) {
     if (checkSelection()) {
       isNewFrameSelected = false;
-      updateGrid(cellCount, padding);
+      updateGrid(cellCount);
       lastCells = cellCount;
-      lastPadding = padding;
       isGridCreated = true;
       
       const { possibleCounts, exactFitCounts, evenGridCounts } = getPossibleCellCounts(lastWidth, lastHeight, 300, forceEvenGrid);
@@ -89,7 +86,7 @@ export default function () {
   on<CellCountHandler>('CELL_COUNT_CHANGE', function({ cellCount }) {
     if (isGridCreated && checkSelection()) {
       const numericCellCount = parseInt(cellCount, 10);
-      updateGrid(numericCellCount, lastPadding);
+      updateGrid(numericCellCount);
       lastCells = numericCellCount;
     }
   });
@@ -121,7 +118,7 @@ export default function () {
       if (currentWidth !== lastWidth || currentHeight !== lastHeight) {
         lastWidth = currentWidth;
         lastHeight = currentHeight;
-        updateGrid(lastCells, lastPadding);
+        updateGrid(lastCells);
   
         // Recalculate possible cell counts and exact fit counts
         const { possibleCounts, exactFitCounts } = getPossibleCellCounts(lastWidth, lastHeight, 300, forceEvenGrid);
@@ -156,7 +153,7 @@ export default function () {
       });
       
       // Update the grid
-      updateGrid(lastCells, lastPadding);
+      updateGrid(lastCells);
     }
   });
 }
@@ -206,7 +203,7 @@ function checkSelection(): boolean {
   return true;
 }
 
-function updateGrid(cells: number, padding: number) {
+function updateGrid(cells: number) {
   console.log('autoPopulate', autoPopulate);
   if (!selectedFrame || !figma.getNodeById(selectedFrame.id)) {
     console.log('No selected frame');
@@ -221,9 +218,9 @@ function updateGrid(cells: number, padding: number) {
     return;
   }
 
-  const paddingValue = padding / 100; // Convert percentage to decimal
-  const availableWidth = frameWidth * (1 - paddingValue);
-  const availableHeight = frameHeight * (1 - paddingValue);
+  
+  const availableWidth = frameWidth ;
+  const availableHeight = frameHeight ;
 
   const grid = fitSquaresInRectangle(availableWidth, availableHeight, cells, forceEvenGrid);
   if (!grid) {

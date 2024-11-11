@@ -2,7 +2,7 @@ import { EventHandler } from "@create-figma-plugin/utilities";
 
 export interface GridHandler {
   name: 'UPDATE_GRID'
-  handler: (options: { cellCount: number, padding: number }) => void
+  handler: (options: { cellCount: number }) => void
 }
 
 export interface AutoPopulateHandler {
@@ -26,7 +26,7 @@ export interface PossibleCellCountsHandler {
 
 export interface CreateGridHandler {
   name: 'CREATE_GRID'
-  handler: (options: { cellCount: number, padding: number }) => void
+  handler: (options: { cellCount: number }) => void
 }
 
 export interface CellCountHandler {

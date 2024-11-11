@@ -17,12 +17,11 @@ import {
   Columns // We'll create this component
 } from '@create-figma-plugin/ui'
 import { emit, on } from '@create-figma-plugin/utilities'
-import { FrameSelectionHandler, AutoPopulateHandler, PossibleCellCountsHandler, CellCountHandler, ExactFitHandler } from './types'
+import { FrameSelectionHandler, PossibleCellCountsHandler, CellCountHandler, ExactFitHandler } from './types'
 import { CellCountPicker } from './components/CellCountPicker';
 
 function Plugin() {
   const [cellCount, setCellCount] = useState<number | null>(null);
-  const [padding, setPadding] = useState<number>(0)
   const [steps, setSteps] = useState<number[]>([])
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
   const [autoPopulate, setAutoPopulate] = useState<boolean>(false);
@@ -55,9 +54,7 @@ function Plugin() {
     emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestValue.toString() });
   }
 
-  const handlePaddingChange = (value: string) => {
-    setPadding(parseInt(value, 10))
-  }
+  
   const findClosestStep = (value: number): number => {
     if (steps.length === 0) return value;
     
@@ -191,7 +188,7 @@ function Plugin() {
   }
 
   function handleCreateGrid() {
-    emit('CREATE_GRID', { cellCount, padding })
+    emit('CREATE_GRID', { cellCount })
     setIsGridCreated(true);
   }
   const currentStepIndex = steps.indexOf(cellCount ?? 0);
@@ -247,7 +244,7 @@ function Plugin() {
     
     // Force recalculation of grid and update UI
     if (cellCount && cellCount > 0) {
-      emit('CREATE_GRID', { cellCount, padding });
+      emit('CREATE_GRID', { cellCount});
     }
   }, [evenRowsColumns]);
 
@@ -290,7 +287,7 @@ function Plugin() {
         }
       }
 
-      emit('CREATE_GRID', { cellCount, padding });
+      emit('CREATE_GRID', { cellCount });
     } catch (error) {
       console.error('Error in handleEvenRowsColumnsChange:', error);
     } finally {
@@ -438,35 +435,13 @@ function Plugin() {
           </div>
         )}
       </div>
-
-      <VerticalSpace space="medium" />
-      <Text>Padding</Text>
-      <VerticalSpace space="small" />
-      <TextboxNumeric 
-        variant='border'
-        maximum={100}
-        minimum={0}
-        suffix="%"
-        onValueInput={handlePaddingChange}
-        value={padding.toString()} 
-      />      
-      <VerticalSpace space="small" />
-      <RangeSlider
-        maximum={100}
-        minimum={0}
-        onValueInput={handlePaddingChange}
-        value={padding.toString()}
-      />
-
-
-
     </Container>}
 
     {!isGridCreated && (
         <Container className="absolute inset-0 flex flex-col justify-between p-4" space="medium">    
           <div>
             <Text className="h-min">
-              <Muted>This tool lets you create a customizable grid by setting the number of cells and padding. Adjust the values using the sliders or type directly, with inputs snapping to valid options. Start by selecting or creating a frame, then click "Create Grid" to unlock the settings. You can also enable the auto-fill option for easier grid population.</Muted>
+              <Muted>This tool forces a square grid based on the size of its outer frame.</Muted>
             </Text>
           </div>
           
