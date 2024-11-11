@@ -42,6 +42,7 @@ function Plugin() {
   const [evenFitsOnly, setEvenFitsOnly] = useState<boolean>(false);
   const [originalExactFits, setOriginalExactFits] = useState<number[]>([]);
   const [evenRowsColumns, setEvenRowsColumns] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const numColorPickers = Math.min(cellCount, 5);
 
@@ -362,17 +363,24 @@ function Plugin() {
           <Text>Even fits only</Text>
         </Toggle>
         
-        <Toggle onChange={(e) => {
-          const newValue = e.currentTarget.checked;
-          console.log('Even grid toggle clicked:', newValue);
-          setEvenRowsColumns(newValue);
-          
-          // Force immediate UI update
-          if (cellCount > 0) {
-            emit('CREATE_GRID', { cellCount, padding });
-          }
-        }} value={evenRowsColumns}>
-          <Text>Even rows and columns</Text>
+        <Toggle 
+          onChange={(e) => {
+            const newValue = e.currentTarget.checked;
+            setIsLoading(true);
+            setEvenRowsColumns(newValue);
+            
+            // Use requestAnimationFrame to prevent UI blocking
+            requestAnimationFrame(() => {
+              if (cellCount > 0) {
+                emit('CREATE_GRID', { cellCount, padding });
+              }
+              setIsLoading(false);
+            });
+          }} 
+          value={evenRowsColumns}
+          disabled={isLoading}
+        >
+          <Text>{isLoading ? 'Calculating...' : 'Even rows and columns'}</Text>
         </Toggle>
 
         {exactFit && 

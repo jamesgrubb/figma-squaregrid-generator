@@ -311,6 +311,11 @@ function updateGrid(cells: number, padding: number) {
   const availableHeight = frameHeight * (1 - paddingValue);
 
   const grid = fitSquaresInRectangle(availableWidth, availableHeight, cells, forceEvenGrid);
+  if (!grid) {
+    console.log('No valid grid configuration found');
+    return;
+  }
+  
   const nrows = grid.nrows;
   const ncols = grid.ncols;
   const cell_size = grid.cell_size;
@@ -410,168 +415,129 @@ function getPossibleCellCounts(width: number, height: number, maxCells: number, 
   exactFitCounts: number[],
   evenGridCounts: number[]
 } {
-  const possibleCounts: number[] = [];
-  const exactFitCounts: number[] = [];
-  const evenGridCounts: number[] = [];
+  // Cache results for performance
+  const gridCache = new Map();
+  
+  function getGridForCount(count: number) {
+    const cacheKey = `${count}-${forceEvenGrid}`;
+    if (!gridCache.has(cacheKey)) {
+      gridCache.set(cacheKey, fitSquaresInRectangle(width, height, count, forceEvenGrid));
+    }
+    return gridCache.get(cacheKey);
+  }
 
   const targetWidth = Math.floor(width);
   const targetHeight = Math.floor(height);
 
-  console.log('Target dimensions:', { targetWidth, targetHeight, forceEvenGrid });
-
-  for (let i = 1; i <= maxCells; i++) {
-    const grid = fitSquaresInRectangle(width, height, i, forceEvenGrid);
+  // Pre-calculate all possible counts
+  const allCounts = Array.from({ length: maxCells }, (_, i) => i + 1);
+  
+  // Filter counts based on criteria
+  const results = allCounts.reduce((acc, count) => {
+    const grid = getGridForCount(count);
+    const totalCells = grid.nrows * grid.ncols;
+    const hasEvenDimensions = grid.nrows % 2 === 0 && grid.ncols % 2 === 0;
     
-    // Basic possible counts
-    if (grid.nrows * grid.ncols === i) {
-      // Only add to possibleCounts if not forcing even grid or if dimensions are even
-      if (!forceEvenGrid || (grid.nrows % 2 === 0 && grid.ncols % 2 === 0)) {
-        possibleCounts.push(i);
+    if (totalCells === count) {
+      if (!forceEvenGrid || hasEvenDimensions) {
+        acc.possibleCounts.push(count);
       }
     }
-    
-    // Strict exact fit checking
+
     const isExactFit = grid.used_width === targetWidth && 
                       grid.used_height === targetHeight &&
                       grid.cell_size > 0;
-                      
-    const hasEvenDimensions = grid.nrows % 2 === 0 && 
-                             grid.ncols % 2 === 0;
-
-    if (isExactFit) {
-      if (!forceEvenGrid || hasEvenDimensions) {
-        exactFitCounts.push(i);
-      }
-    }
     
-    // Even grid counts
-    if (hasEvenDimensions) {
-      evenGridCounts.push(i);
+    if (isExactFit && (!forceEvenGrid || hasEvenDimensions)) {
+      acc.exactFitCounts.push(count);
     }
-  }
-  
-  // If forcing even grid, filter all arrays to ensure even dimensions
-  const finalPossibleCounts = forceEvenGrid ? 
-    possibleCounts.filter(count => {
-      const grid = fitSquaresInRectangle(width, height, count, true);
-      return grid.nrows % 2 === 0 && grid.ncols % 2 === 0;
-    }) : possibleCounts;
 
-  const finalExactFitCounts = forceEvenGrid ?
-    exactFitCounts.filter(count => {
-      const grid = fitSquaresInRectangle(width, height, count, true);
-      return grid.nrows % 2 === 0 && grid.ncols % 2 === 0;
-    }) : exactFitCounts;
-  
-  console.log('Final counts:', {
-    possible: finalPossibleCounts,
-    exact: finalExactFitCounts,
-    even: evenGridCounts
+    if (hasEvenDimensions && totalCells === count) {
+      acc.evenGridCounts.push(count);
+    }
+
+    return acc;
+  }, {
+    possibleCounts: [] as number[],
+    exactFitCounts: [] as number[],
+    evenGridCounts: [] as number[]
   });
-  
-  return { 
-    possibleCounts: finalPossibleCounts, 
-    exactFitCounts: finalExactFitCounts, 
-    evenGridCounts 
-  };
+
+  return results;
 }
 
+function getFactorPairs(n: number): [number, number][] {
+  const pairs: [number, number][] = [];
+  for (let i = 1; i <= Math.sqrt(n); i++) {
+    if (n % i === 0) {
+      pairs.push([i, n / i]);
+    }
+  }
+  return pairs;
+}
 
 function fitSquaresInRectangle(x: number, y: number, n: number, forceEvenGrid: boolean = false) {
   // Ensure inputs are valid numbers and greater than 0
   const adjustedX = Math.max(1, Math.floor(x));
   const adjustedY = Math.max(1, Math.floor(y));
   const adjustedN = Math.max(1, Math.floor(n));
-  
-  console.log('fitSquaresInRectangle input:', { 
-    x: adjustedX, 
-    y: adjustedY, 
-    n: adjustedN, 
-    forceEvenGrid,
-    ratio: adjustedX/adjustedY 
-  });
 
-  // Find all possible factor pairs for n
-  function getFactorPairs(num: number): Array<[number, number]> {
-    const pairs: Array<[number, number]> = [];
-    for (let i = 1; i <= Math.sqrt(num); i++) {
-      if (num % i === 0) {
-        pairs.push([i, num / i]);
-        if (i !== num / i) {
-          pairs.push([num / i, i]); // Add reverse pair if not square
-        }
-      }
-    }
-    return pairs;
-  }
+  // Default fallback configuration
+  const defaultConfig = {
+    nrows: 1,
+    ncols: 1,
+    cell_size: Math.min(adjustedX, adjustedY),
+    used_width: Math.min(adjustedX, adjustedY),
+    used_height: Math.min(adjustedX, adjustedY)
+  };
 
   if (forceEvenGrid) {
-    // Get all factor pairs and filter for even dimensions
     const pairs = getFactorPairs(adjustedN).filter(([rows, cols]) => 
-      (rows % 2 === 0 || cols % 2 === 0)
+      (rows % 2 === 0 && cols % 2 === 0)
     );
 
-    console.log('Valid factor pairs:', pairs);
+    if (pairs.length === 0) {
+      return defaultConfig; // Return default if no even pairs found
+    }
 
-    const validConfigs = pairs.map(([rows, cols]) => {
-      const cell_size = Math.min(adjustedX / cols, adjustedY / rows);
-      return {
+    const validConfigs = pairs
+      .map(([rows, cols]) => ({
         nrows: rows,
         ncols: cols,
-        cell_size: Math.floor(cell_size),
-        used_width: Math.floor(cell_size * cols),
-        used_height: Math.floor(cell_size * rows)
-      };
-    }).filter(config => 
-      // Filter for configurations that fit within the frame
-      config.used_width <= adjustedX && 
-      config.used_height <= adjustedY &&
-      config.cell_size > 0
-    );
-
-    console.log('Valid configurations:', validConfigs);
+        cell_size: Math.floor(Math.min(adjustedX / cols, adjustedY / rows))
+      }))
+      .map(config => ({
+        ...config,
+        used_width: config.cell_size * config.ncols,
+        used_height: config.cell_size * config.nrows
+      }))
+      .filter(config => 
+        config.used_width <= adjustedX && 
+        config.used_height <= adjustedY &&
+        config.cell_size > 0
+      );
 
     if (validConfigs.length > 0) {
-      // Sort by area utilization and return the best fit
-      const bestConfig = validConfigs.sort((a, b) => 
+      return validConfigs.sort((a, b) => 
         (b.used_width * b.used_height) - (a.used_width * a.used_height)
       )[0];
-      
-      console.log('Selected configuration:', bestConfig);
-      return bestConfig;
     }
   }
 
-  // Original calculation for non-even or fallback cases
+  // Original calculation for non-even grids
   const ratio = adjustedX / adjustedY;
   const ncols_float = Math.sqrt(adjustedN * ratio);
   const nrows_float = adjustedN / ncols_float;
 
-  const nrows1 = Math.floor(nrows_float);
-  const ncols1 = Math.ceil(adjustedN / nrows1);
-  const cell_size1 = Math.floor(Math.min(adjustedX / ncols1, adjustedY / nrows1));
+  const nrows = Math.floor(nrows_float);
+  const ncols = Math.ceil(adjustedN / nrows);
+  const cell_size = Math.floor(Math.min(adjustedX / ncols, adjustedY / nrows));
 
-  const ncols2 = Math.floor(ncols_float);
-  const nrows2 = Math.ceil(adjustedN / ncols2);
-  const cell_size2 = Math.floor(Math.min(adjustedX / ncols2, adjustedY / nrows2));
-
-  const used_width1 = ncols1 * cell_size1;
-  const used_height1 = nrows1 * cell_size1;
-  const used_width2 = ncols2 * cell_size2;
-  const used_height2 = nrows2 * cell_size2;
-
-  // Return the best fitting option
-  return used_width1 <= adjustedX && used_height1 <= adjustedY ? {
-    nrows: nrows1,
-    ncols: ncols1,
-    cell_size: cell_size1,
-    used_width: used_width1,
-    used_height: used_height1
-  } : {
-    nrows: nrows2,
-    ncols: ncols2,
-    cell_size: cell_size2,
-    used_width: used_width2,
-    used_height: used_height2
+  return {
+    nrows,
+    ncols,
+    cell_size,
+    used_width: cell_size * ncols,
+    used_height: cell_size * nrows
   };
 }
