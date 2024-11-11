@@ -333,7 +333,13 @@ function Plugin() {
   }, [evenFitsOnly, isExactFitEnabled]);
 
   useEffect(() => {
+    // Update UI when evenRowsColumns changes
     emit('EVEN_GRID', { evenGrid: evenRowsColumns });
+    
+    // Force recalculation of grid and update UI
+    if (cellCount > 0) {
+      emit('CREATE_GRID', { cellCount, padding });
+    }
   }, [evenRowsColumns]);
 
   return (
@@ -357,8 +363,14 @@ function Plugin() {
         </Toggle>
         
         <Toggle onChange={(e) => {
-          console.log('Even grid toggle clicked:', e.currentTarget.checked);
-          setEvenRowsColumns(e.currentTarget.checked);
+          const newValue = e.currentTarget.checked;
+          console.log('Even grid toggle clicked:', newValue);
+          setEvenRowsColumns(newValue);
+          
+          // Force immediate UI update
+          if (cellCount > 0) {
+            emit('CREATE_GRID', { cellCount, padding });
+          }
         }} value={evenRowsColumns}>
           <Text>Even rows and columns</Text>
         </Toggle>
