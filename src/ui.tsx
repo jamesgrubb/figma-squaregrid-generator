@@ -24,7 +24,7 @@ function Plugin() {
   const [cellCount, setCellCount] = useState<number | null>(null);
   const [steps, setSteps] = useState<number[]>([])
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
-  const [autoPopulate, setAutoPopulate] = useState<boolean>(false);
+  
   const [isGridCreated, setIsGridCreated] = useState(false);
   
   
@@ -43,7 +43,7 @@ function Plugin() {
   const [evenExactFits, setEvenExactFits] = useState<number[]>([]);
   const [perfectFitNumber, setPerfectFitNumber] = useState<number | null>(null);
 
-  const numColorPickers = cellCount != null ? Math.min(cellCount, 5) : 5;
+
 
  
 
@@ -77,32 +77,6 @@ function Plugin() {
   }, [isEnabled]);
 
   
-
-  
-
-  
-
-  useEffect(() => {
-    console.log('evenFitsOnly changed to:', evenFitsOnly);
-    console.log('current steps:', steps);
-    
-    const filteredSteps = evenFitsOnly 
-      ? steps.filter(step => step % 2 === 0)
-      : steps;
-    
-    if (filteredSteps.length > 0 && cellCount !== null) {
-      const nearestStep = findClosestStep(cellCount);
-      if (nearestStep !== cellCount) {
-        setCellCount(nearestStep);
-      }
-    }
-    
-    if (cellCount !== null) {
-      emit<CellCountHandler>('CELL_COUNT_CHANGE', { 
-        cellCount: cellCount.toString()
-      });
-    }
-  }, [evenFitsOnly]);
 
   useEffect(() => {
     const cellCountHandler = (event: { possibleCellCounts: number[], exactFitCounts: number[] } | undefined) => {
@@ -200,18 +174,7 @@ function Plugin() {
   const maxStep = steps.length > 0 ? Math.max(...steps) : 300; // Fallback to 300 if no steps
 
 
-  useEffect(() => {
-    // Re-emit the cell count to trigger recalculation with new evenFitsOnly value
-    emit<CellCountHandler>('CELL_COUNT_CHANGE', { 
-      cellCount: cellCount?.toString() ?? '0' 
-    });
-  }, [evenFitsOnly]);
 
-  function handleEvenFitsChange(event: h.JSX.TargetedEvent<HTMLInputElement>) {
-    const newValue = event.currentTarget.checked;
-    setEvenFitsOnly(newValue);
-    // This will trigger the effect above
-  }
 
   // Add this effect to handle the interaction between evenRowsColumns and exactFit
   useEffect(() => {
@@ -366,12 +329,6 @@ function Plugin() {
       <VerticalSpace space="large" />
 
       <div className="flex flex-col gap-2">
-        <Toggle 
-          onChange={(e) => setEvenFitsOnly(e.currentTarget.checked)}
-          value={evenFitsOnly}
-        >
-          <Text>Even fits only</Text>
-        </Toggle>
         
         <Toggle 
           onChange={handleEvenRowsColumnsChange}
