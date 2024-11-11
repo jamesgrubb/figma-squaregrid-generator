@@ -457,71 +457,106 @@ function getPossibleCellCounts(width: number, height: number, maxCells: number, 
 
 
 function fitSquaresInRectangle(x: number, y: number, n: number, forceEvenGrid: boolean = false) {
-  const adjustedX = Math.floor(x);
-  const adjustedY = Math.floor(y);
+  // Ensure inputs are valid numbers and greater than 0
+  const adjustedX = Math.max(1, Math.floor(x));
+  const adjustedY = Math.max(1, Math.floor(y));
+  const adjustedN = Math.max(1, Math.floor(n));
+  
+  console.log('fitSquaresInRectangle input:', { x: adjustedX, y: adjustedY, n: adjustedN, forceEvenGrid });
+
   const isSquare = adjustedX === adjustedY;
 
   // Special handling for square frames
   if (isSquare && forceEvenGrid) {
     // Find the nearest even square root that divides evenly
-    const sqrtN = Math.sqrt(n);
-    let evenRows = Math.round(sqrtN);
+    const sqrtN = Math.sqrt(adjustedN);
+    let evenRows = Math.ceil(sqrtN);
     if (evenRows % 2 !== 0) evenRows += 1;
     
     const cell_size = Math.floor(adjustedX / evenRows);
     const used_width = cell_size * evenRows;
     const used_height = used_width;
 
+    console.log('Square frame result:', {
+      nrows: evenRows,
+      ncols: evenRows,
+      cell_size,
+      used_width,
+      used_height
+    });
+
     return {
       nrows: evenRows,
       ncols: evenRows,
-      cell_size: cell_size,
-      used_width: used_width,
-      used_height: used_height
+      cell_size,
+      used_width,
+      used_height
     };
   }
 
   // Original calculation for non-square frames
-  var ratio = adjustedX / adjustedY;
-  var ncols_float = Math.sqrt(n * ratio);
-  var nrows_float = n / ncols_float;
+  const ratio = adjustedX / adjustedY;
+  const ncols_float = Math.sqrt(adjustedN * ratio);
+  const nrows_float = adjustedN / ncols_float;
 
   // Make sure we round to even numbers if forceEvenGrid is true
-  var nrows1 = forceEvenGrid ? Math.floor(nrows_float / 2) * 2 : Math.floor(nrows_float);
-  var ncols1 = forceEvenGrid ? Math.ceil(n / nrows1 / 2) * 2 : Math.ceil(n / nrows1);
-  var cell_size1 = Math.floor(Math.min(adjustedX / ncols1, adjustedY / nrows1));
+  const nrows1 = forceEvenGrid ? Math.ceil(nrows_float / 2) * 2 : Math.floor(nrows_float);
+  const ncols1 = forceEvenGrid ? Math.ceil(adjustedN / nrows1 / 2) * 2 : Math.ceil(adjustedN / nrows1);
+  const cell_size1 = Math.floor(Math.min(adjustedX / ncols1, adjustedY / nrows1));
 
-  var ncols2 = forceEvenGrid ? Math.floor(ncols_float / 2) * 2 : Math.floor(ncols_float);
-  var nrows2 = forceEvenGrid ? Math.ceil(n / ncols2 / 2) * 2 : Math.ceil(n / ncols2);
-  var cell_size2 = Math.floor(Math.min(adjustedX / ncols2, adjustedY / nrows2));
+  const ncols2 = forceEvenGrid ? Math.ceil(ncols_float / 2) * 2 : Math.floor(ncols_float);
+  const nrows2 = forceEvenGrid ? Math.ceil(adjustedN / ncols2 / 2) * 2 : Math.ceil(adjustedN / ncols2);
+  const cell_size2 = Math.floor(Math.min(adjustedX / ncols2, adjustedY / nrows2));
 
-  var used_width1 = ncols1 * cell_size1;
-  var used_height1 = nrows1 * cell_size1;
-  var used_width2 = ncols2 * cell_size2;
-  var used_height2 = nrows2 * cell_size2;
+  const used_width1 = ncols1 * cell_size1;
+  const used_height1 = nrows1 * cell_size1;
+  const used_width2 = ncols2 * cell_size2;
+  const used_height2 = nrows2 * cell_size2;
 
-  console.log('Grid options:', {
-    target: { width: adjustedX, height: adjustedY },
-    option1: { width: used_width1, height: used_height1, rows: nrows1, cols: ncols1, cellSize: cell_size1 },
-    option2: { width: used_width2, height: used_height2, rows: nrows2, cols: ncols2, cellSize: cell_size2 }
-  });
-
-  // Return the best fitting option
-  if (used_width1 === adjustedX && used_height1 === adjustedY) {
-    return {
+  console.log('Non-square frame options:', {
+    option1: {
       nrows: nrows1,
       ncols: ncols1,
       cell_size: cell_size1,
       used_width: used_width1,
       used_height: used_height1
-    };
-  } else {
-    return {
+    },
+    option2: {
       nrows: nrows2,
       ncols: ncols2,
       cell_size: cell_size2,
       used_width: used_width2,
       used_height: used_height2
+    }
+  });
+
+  // Return the best fitting option, ensuring all values are valid numbers
+  const result = used_width1 <= adjustedX && used_height1 <= adjustedY ? {
+    nrows: nrows1,
+    ncols: ncols1,
+    cell_size: cell_size1,
+    used_width: used_width1,
+    used_height: used_height1
+  } : {
+    nrows: nrows2,
+    ncols: ncols2,
+    cell_size: cell_size2,
+    used_width: used_width2,
+    used_height: used_height2
+  };
+
+  // Final validation
+  if (Object.values(result).some(val => isNaN(val) || val <= 0)) {
+    console.error('Invalid result calculated:', result);
+    // Return safe fallback values
+    return {
+      nrows: 2,
+      ncols: 2,
+      cell_size: Math.floor(Math.min(adjustedX, adjustedY) / 2),
+      used_width: Math.floor(adjustedX),
+      used_height: Math.floor(adjustedY)
     };
   }
+
+  return result;
 }
