@@ -383,7 +383,7 @@ function Plugin() {
           <Text>{isLoading ? 'Calculating...' : 'Even rows and columns'}</Text>
         </Toggle>
 
-        {exactFit && 
+        {exactFit && !evenRowsColumns && 
           <Toggle onChange={handleExactFitChange} value={isExactFitEnabled}>
             <Text>{exactFitCount !== null ? `Show 1 perfect fit` : 'Show perfect fits'}</Text>
           </Toggle>
