@@ -26,7 +26,6 @@ let selectedFrameId: string | null = null;
 let isNewFrameSelected: boolean = false;
 let isGridCreated: boolean = false;
 let forceEvenGrid: boolean = false;
-let resizeTimeout: number | null = null;
 
 export default function () {
   showUI({
@@ -103,7 +102,7 @@ export default function () {
     }
   });
 
-  on<ExactFitHandler>('EXACT_FIT', (data) => {
+  on<ExactFitHandler>('EXACT_FIT', () => {
   });
 
   on<CellCountHandler>('CELL_COUNT_CHANGE', function({ cellCount }) {
@@ -125,7 +124,7 @@ export default function () {
     }
   });
 
-  figma.on('documentchange', (event) => {
+  figma.on('documentchange', () => {
     if (isGridCreated && selectedFrame && !isNewFrameSelected) {
       if (!figma.getNodeById(selectedFrame.id)) {
         emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected: false });
@@ -193,7 +192,7 @@ function checkSelectionWithoutSideEffects(): boolean {
     return false;
   }
 
-  let frame = figma.currentPage.selection[0];
+  const frame = figma.currentPage.selection[0];
   return frame.type === 'FRAME';
 }
 
@@ -205,7 +204,7 @@ function checkSelection(): boolean {
     return false;
   }
 
-  let frame = figma.currentPage.selection[0];
+  const frame = figma.currentPage.selection[0];
 
   if (frame.type !== 'FRAME') {
     figma.notify('Please select a frame, not another type of element');
@@ -280,12 +279,13 @@ function updateGrid(cells: number) {
   try {
     selectedFrame.appendChild(gridFrame);
   } catch (error) {
+    console.error(error);
     return;
   }
 
   
 
-  let layoutGrids: LayoutGrid[] = [
+  const layoutGrids: LayoutGrid[] = [
     {
       pattern: 'GRID',
       sectionSize: cell_size,
@@ -386,7 +386,7 @@ function fitSquaresInRectangle(x: number, y: number, n: number, forceEvenGrid: b
     const pairs = getFactorPairs(adjustedN)
       .filter(([rows, cols]) => {
         // Both dimensions must be even
-        const hasEvenDimensions = rows % 2 === 0 && cols % 2 === 0;
+      
         
         // Get max dimension for each pair
         const maxDim = Math.max(rows, cols);

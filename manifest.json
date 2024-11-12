@@ -7,5 +7,7 @@
   "name": "You're so square",
   "main": "build/main.js",
   "ui": "build/ui.js",
-  "networkAccess": { "allowedDomains": "none" }
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  }  
 }
