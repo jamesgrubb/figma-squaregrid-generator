@@ -366,83 +366,82 @@ function Plugin() {
   return (
     <div className="relative h-full text-balance">
       {isGridCreated && <Container space="medium">
-        <div className="flex flex-col gap-2 pt-2 pb-4">
-          <div>
-            <Text><Bold>Cell Count</Bold></Text>
-          </div>
-
+        <div className="flex flex-col justify-between h-full pb-4">
+          <div className="flex flex-col gap-2 pt-2 ">
+            <div>
+              <Text><Bold>Cell Count</Bold></Text>
+            </div>
           
-          <div>
-            {(isExactFitEnabled && dropdownOptions.length > 0) ? (
-              // Exact fit controls
-              <div>
-                {perfectFitNumber ? (
-                  <div>                    
-                    <TextboxNumeric
-                      icon={<IconTidyGrid32 />}
-                      variant='border'
-                      disabled={true}
-                      value={perfectFitNumber.toString()} 
+            <div>
+              {(isExactFitEnabled && dropdownOptions.length > 0) ? (
+                // Exact fit controls
+                <div>
+                  {perfectFitNumber ? (
+                    <div>
+                      <TextboxNumeric
+                        icon={<IconTidyGrid32 />}
+                        variant='border'
+                        disabled={true}
+                        value={perfectFitNumber.toString()}
+                      />
+                      <VerticalSpace space="small" />
+                    </div>
+                  ) : (
+                    <CellCountPicker
+                      cellCountOptions={dropdownOptions}
+                      dropdownCellCountChange={handleDropdownCellCountChange}
+                      dropdownValue={dropdownValue}
                     />
-                    <VerticalSpace space="small" />
-                  </div>
-                ) : (
-                  <CellCountPicker 
-                    cellCountOptions={dropdownOptions} 
-                    dropdownCellCountChange={handleDropdownCellCountChange}  
-                    dropdownValue={dropdownValue}
+                  )}
+                </div>
+              ) : (
+                // Regular controls
+                <div>
+                  <TextboxNumeric
+                    icon={<IconTidyGrid32 />}
+                    variant='border'
+                    maximum={Math.max(...(steps.length ? steps : [300]), 300)}
+                    minimum={Math.min(...(steps.length ? steps : [1]), 1)}
+                    onValueInput={handleCellCountChange}
+                    value={cellCount?.toString() ?? '0'}
                   />
-                )}
-              </div>
-            ) : (
-              // Regular controls
-              <div>
-                <TextboxNumeric
-                  icon={<IconTidyGrid32 />}     
-                  variant='border'
-                  maximum={Math.max(...(steps.length ? steps : [300]), 300)}
-                  minimum={Math.min(...(steps.length ? steps : [1]), 1)}
-                  onValueInput={handleCellCountChange}
-                  value={cellCount?.toString() ?? '0'}
-                />
-                <RangeSlider
-                  maximum={Math.max(...(steps.length ? steps : [300]), 300)}
-                  minimum={Math.min(...(steps.length ? steps : [1]), 1)}
-                  value={cellCount?.toString() ?? '0'}
-                  onValueInput={(value) => {
-                    const numericValue = parseInt(value, 10);
-                    const closestStep = findClosestStep(numericValue);
-                    setCellCount(closestStep);
-                    emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: closestStep.toString() });
-                  }}
-                />
-                <VerticalSpace space="small" />
-              </div>
+                  <RangeSlider
+                    maximum={Math.max(...(steps.length ? steps : [300]), 300)}
+                    minimum={Math.min(...(steps.length ? steps : [1]), 1)}
+                    value={cellCount?.toString() ?? '0'}
+                    onValueInput={(value) => {
+                      const numericValue = parseInt(value, 10);
+                      const closestStep = findClosestStep(numericValue);
+                      setCellCount(closestStep);
+                      emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: closestStep.toString() });
+                    }}
+                  />
+                  <VerticalSpace space="small" />
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col space-y-1">
+            <Text className="mb-1"><Bold>Options</Bold></Text>
+            <Toggle
+              onChange={handleEvenRowsColumnsChange}
+              value={evenRowsColumns}
+              disabled={isLoading}
+            >
+              <Text>{isLoading ? 'Calculating...' : 'Even rows and columns'}</Text>
+            </Toggle>
+            {shouldShowExactFitToggle() && (
+              <Toggle
+                onChange={handleExactFitChange}
+                value={isExactFitEnabled}
+                disabled={isResizing}
+              >
+                <Text>
+                  {isResizing ? 'Calculating...' : 'Match frame size'}
+                </Text>
+              </Toggle>
             )}
           </div>
-        </div>
-
-        <div className="flex flex-col space-y-1">
-          <Text className="mb-1"><Bold>Options</Bold></Text>
-          <Toggle
-            onChange={handleEvenRowsColumnsChange}
-            value={evenRowsColumns}
-            disabled={isLoading}
-          >
-            <Text>{isLoading ? 'Calculating...' : 'Even rows and columns'}</Text>
-          </Toggle>
-
-          {shouldShowExactFitToggle() && (
-            <Toggle
-              onChange={handleExactFitChange}
-              value={isExactFitEnabled}
-              disabled={isResizing}
-            >
-              <Text>
-                {isResizing ? 'Calculating...' : 'Match frame size'}
-              </Text>
-            </Toggle>
-          )}
         </div>
       </Container>}
 
