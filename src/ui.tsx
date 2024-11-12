@@ -11,11 +11,10 @@ import {
   VerticalSpace,
   render,
   Banner,
-  IconWarning32,
+  IconInfo32,  
   TextboxNumeric,
   Muted,
   Bold,
-  Columns // We'll create this component
 } from '@create-figma-plugin/ui'
 import { emit, on } from '@create-figma-plugin/utilities'
 import { FrameSelectionHandler, PossibleCellCountsHandler, CellCountHandler, ExactFitHandler } from './types'
@@ -24,29 +23,17 @@ import { CellCountPicker } from './components/CellCountPicker';
 function Plugin() {
   const [cellCount, setCellCount] = useState<number | null>(null);
   const [steps, setSteps] = useState<number[]>([])
-  const [isEnabled, setIsEnabled] = useState<boolean>(false);
-  
-  const [isGridCreated, setIsGridCreated] = useState(false);
-  
-  
-  
+  const [isEnabled, setIsEnabled] = useState<boolean>(false);  
+  const [isGridCreated, setIsGridCreated] = useState(false);  
   const [dropdownValue, setDropdownValue] = useState<null | string>(null);
   const [dropdownOptions, setDropdownOptions] = useState<Array<{ value: string }>>([{ value: '0' },]);
-  const [exactFit, setExactFit] = useState<boolean>(false);
-  const [showDropdown, setShowDropdown] = useState<boolean>(false);
-  const [exactFitCount, setExactFitCount] = useState<number | null>(null);
   const [isExactFitEnabled, setIsExactFitEnabled] = useState(false);
-  
-  const [evenFitsOnly, setEvenFitsOnly] = useState<boolean>(false);
   const [originalExactFits, setOriginalExactFits] = useState<number[]>([]);
   const [evenRowsColumns, setEvenRowsColumns] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [evenExactFits, setEvenExactFits] = useState<number[]>([]);
   const [perfectFitNumber, setPerfectFitNumber] = useState<number | null>(null);
 
 
-
- 
 
   const handleCellCountChange = (value: string) => {
     const numberValue = parseInt(value, 10);
@@ -59,21 +46,15 @@ function Plugin() {
   const findClosestStep = (value: number): number => {
     if (steps.length === 0) return value;
     
-    const validSteps = evenFitsOnly 
-      ? steps.filter(step => step % 2 === 0)
-      : steps;
-    
-    return validSteps.reduce((prev, curr) => 
+    return steps.reduce((prev, curr) => 
       Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev
     );
   };
   
-  console.log(isEnabled)
 
   useEffect(() => {
     on<FrameSelectionHandler>('FRAME_SELECTED', (event) => {
-       console.log('Frame selected event received:', event);
-      setIsEnabled(event.isFrameSelected);     
+       setIsEnabled(event.isFrameSelected);     
     });
   }, [isEnabled]);
 
@@ -82,18 +63,11 @@ function Plugin() {
   useEffect(() => {
     const cellCountHandler = (event: { possibleCellCounts: number[], exactFitCounts: number[] } | undefined) => {
       if (event?.possibleCellCounts && Array.isArray(event.possibleCellCounts)) {
-        console.log('Initial Cell Count Handler:', {
-          possibleCounts: event.possibleCellCounts,
-          exactFitCounts: event.exactFitCounts,
-          currentCount: cellCount
-        });
-        
         setSteps(event.possibleCellCounts);
         
         // Set initial cell count only if it hasn't been set or is invalid
         if (cellCount === null || !event.possibleCellCounts.includes(cellCount)) {
           const initialCount = event.possibleCellCounts[0];
-          console.log('Setting initial cell count:', initialCount);
           setCellCount(initialCount);
           emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: initialCount.toString() });
         }
@@ -113,12 +87,9 @@ function Plugin() {
 
   
 
-  console.log('dropdown values',dropdownValue)
-
   const handleDropdownCellCountChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
     const target = event.currentTarget as HTMLInputElement;
     const newValue = target?.value;
-    console.log('newValue', newValue)
     setDropdownValue(newValue);
     setCellCount(parseInt(newValue));
     emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: newValue });
@@ -158,7 +129,7 @@ function Plugin() {
       emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestValue.toString() });
     }
   
-    setShowDropdown(newValue);
+    
     emit<ExactFitHandler>('EXACT_FIT', { exactFit: newValue });
   }
 
@@ -166,13 +137,6 @@ function Plugin() {
     emit('CREATE_GRID', { cellCount })
     setIsGridCreated(true);
   }
-  const currentStepIndex = steps.indexOf(cellCount ?? 0);
-  console.log('currentStepIndex', currentStepIndex)
-
-
-
-  const minStep = steps.length > 0 ? Math.min(...steps) : 0; // Fallback to 0 if no steps
-  const maxStep = steps.length > 0 ? Math.max(...steps) : 300; // Fallback to 300 if no steps
 
 
 
@@ -225,8 +189,6 @@ function Plugin() {
         return Number.isInteger(sqrt) && (sqrt % 2 === 0);
       });
 
-      console.log('Valid even grid counts:', validCounts);
-
       if (newValue && cellCount !== null) {
         // Check if there are valid exact fits with even rows/columns
         const validExactFits = originalExactFits.filter(num => {
@@ -267,13 +229,6 @@ function Plugin() {
         return Number.isInteger(sqrt) && sqrt % 2 === 0;
       });
 
-      console.log('Steps update:', {
-        validCounts,
-        currentCount: cellCount,
-        perfectFitNumber,
-        isExactFitEnabled
-      });
-
       // Update cell count if needed
           if (!validCounts.includes(cellCount ?? 0)) {
         const nearestCount = validCounts.reduce((prev, curr) => 
@@ -291,16 +246,6 @@ function Plugin() {
     }
   }, [steps, evenRowsColumns]);
 
-  // Add this effect to track state changes
-  useEffect(() => {
-    console.log('State Debug:', {
-      originalExactFits,
-      evenRowsColumns,
-      perfectFitNumber,
-      isExactFitEnabled
-    });
-  }, [originalExactFits, evenRowsColumns, perfectFitNumber, isExactFitEnabled]);
-
   // Update the shouldShowExactFitToggle function
   const shouldShowExactFitToggle = () => {
     // No exact fits available at all
@@ -312,8 +257,6 @@ function Plugin() {
         const sqrt = Math.sqrt(num);
         return Number.isInteger(sqrt) && sqrt % 2 === 0;
       });
-      
-      console.log('Even square exact fits:', evenSquareExactFits);
       
       // Show toggle if we have valid even square exact fits
       return evenSquareExactFits.length > 0;
@@ -360,7 +303,8 @@ function Plugin() {
             <div>
               {perfectFitNumber ? (
                 
-                  <div><VerticalSpace space="large" /><TextboxNumeric
+                  <div>                    
+                  <TextboxNumeric
                     icon={<IconTidyGrid32 />}
                     variant='border'
                     disabled={true}
@@ -376,7 +320,9 @@ function Plugin() {
             </div>
           )}
           </div>
+
           <div className="flex flex-col space-y-1">
+            <Text className="mb-1"><Bold>Options</Bold></Text>
             <Toggle
               onChange={handleEvenRowsColumnsChange}
               value={evenRowsColumns}
@@ -391,7 +337,7 @@ function Plugin() {
                 value={isExactFitEnabled}
               >
                 <Text>
-                  {perfectFitNumber ? 'Show 1 perfect fit' : 'Show perfect fits'}
+                  {perfectFitNumber ? 'Match frame size' : 'Match frame size'}
                 </Text>
               </Toggle>
             
@@ -402,21 +348,22 @@ function Plugin() {
 
       {!isGridCreated && (
         <Container className="absolute inset-0 flex flex-col justify-between p-4" space="medium">    
-          <Text className="h-min">
-            <Muted>This tool forces a square grid based on the size of its outer frame.</Muted>
-          </Text>
+          
           
           {isEnabled ? (
+            <div className="flex flex-col justify-around h-full">
             <Button 
               className="mt-4" 
               fullWidth 
               onClick={handleCreateGrid}
             >
-              Create Grid
+              Create
             </Button>
+            <Text className="text-center"><Muted>This tool creates a grid based on the size of your selected frame.</Muted></Text>
+            </div>
           ) : (
-            <div className="z-10 rounded-md overflow-clip">
-              <Banner icon={<IconWarning32 />} variant="warning">      
+            <div className="z-10 flex h-full rounded-md overflow-clip bg-slate-400">
+              <Banner  icon={<IconInfo32 />} >      
                 Please select or create a frame to begin
               </Banner>
             </div>
