@@ -10,7 +10,7 @@ import {
   ExactFitHandler, 
   PerfectFitsHandler, 
   SinglePerfectFitHandler, 
-  EvenGridHandler 
+  EvenGridHandler
 } from './types';
 import { EventHandler } from '@create-figma-plugin/utilities';
 import debounce from 'lodash/debounce';
@@ -54,6 +54,16 @@ export default function () {
   });
 
   
+  figma.on('selectionchange', () => {
+    const selectedNodes = figma.currentPage.selection;
+  
+    // Check if the selected node is the grid frame
+    if (selectedNodes.length === 1 && selectedNodes[0].name === 'GridFrame') {
+      // Close the plugin
+      figma.closePlugin();
+    }
+  });
+
   on<GridHandler>('UPDATE_GRID', function({ cellCount }) {
     if (isGridCreated && checkSelection()) {
       debouncedUpdateGrid(cellCount);
@@ -257,7 +267,7 @@ function updateGrid(cells: number) {
   gridFrame.fills = [{
     type: 'SOLID', 
     color: {r: 0.2, g: 0.243, b: 0.835},
-    opacity: 0.2
+    opacity: 0
   }];
   
   if (gridWidth > 0 && gridHeight > 0) {
@@ -280,7 +290,7 @@ function updateGrid(cells: number) {
       pattern: 'GRID',
       sectionSize: cell_size,
       visible: true,
-      color: { r: 0.2, g: 0.243, b: 0.835, a: 1 }
+      color: { r: 0.2, g: 0.243, b: 0.835, a: 0.5 }
     }
   ];
 

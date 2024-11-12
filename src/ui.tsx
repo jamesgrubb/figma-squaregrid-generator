@@ -17,7 +17,7 @@ import {
   Bold,
 } from '@create-figma-plugin/ui'
 import { emit, on } from '@create-figma-plugin/utilities'
-import { FrameSelectionHandler, PossibleCellCountsHandler, CellCountHandler, ExactFitHandler } from './types'
+import { FrameSelectionHandler, PossibleCellCountsHandler, CellCountHandler, ExactFitHandler} from './types'
 import { CellCountPicker } from './components/CellCountPicker';
 
 function Plugin() {
@@ -376,6 +376,9 @@ function Plugin() {
     }
   }, [originalExactFits]);
 
+  // Function to close the plugin
+  
+
   return (
     <div className="relative h-full text-balance">
       {isGridCreated && <Container space="medium">
@@ -434,7 +437,7 @@ function Plugin() {
               )}
             </div>
           </div>
-          <div className="flex flex-col space-y-1">
+          <div className="flex flex-col space-y-1 grid-frame">
             <Text className="mb-1"><Bold>Options</Bold></Text>
             <Toggle
               onChange={handleEvenRowsColumnsChange}
