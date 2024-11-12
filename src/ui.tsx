@@ -307,7 +307,7 @@ function Plugin() {
                   <TextboxNumeric
                     icon={<IconTidyGrid32 />}
                     variant='border'
-                    disabled={false}
+                    disabled={true}
                     value={perfectFitNumber.toString()} /><VerticalSpace space="small" /></div>
                 
               ) : (

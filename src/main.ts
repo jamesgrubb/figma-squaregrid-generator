@@ -219,8 +219,7 @@ function updateGrid(cells: number) {
     return;
   }
 
-  const nrows = grid.nrows;
-  const ncols = grid.ncols;
+  
   const cell_size = grid.cell_size;
   const gridWidth = grid.used_width;
   const gridHeight = grid.used_height;
@@ -236,7 +235,12 @@ function updateGrid(cells: number) {
 
   const gridFrame = figma.createFrame();
   gridFrame.name = 'GridFrame';
-
+  gridFrame.fills = [{
+    type: 'SOLID', 
+    color: {r: 0.2, g: 0.243, b: 0.835},
+    opacity: 0.2
+  }];
+  
   if (gridWidth > 0 && gridHeight > 0) {
     gridFrame.resize(gridWidth, gridHeight);
   }
@@ -257,23 +261,14 @@ function updateGrid(cells: number) {
       pattern: 'GRID',
       sectionSize: cell_size,
       visible: true,
-      color: { r: 0.1, g: 0.1, b: 0.1, a: 0.1 }
+      color: { r: 0.2, g: 0.243, b: 0.835, a: 1 }
     }
   ];
 
   gridFrame.layoutGrids = layoutGrids;
 }
 
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? {
-        r: parseInt(result[1], 16) / 255,
-        g: parseInt(result[2], 16) / 255,
-        b: parseInt(result[3], 16) / 255
-      }
-    : { r: 0, g: 0, b: 0 };
-}
+
 
 
 
