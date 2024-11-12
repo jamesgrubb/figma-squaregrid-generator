@@ -28,7 +28,6 @@ function Plugin() {
   const [dropdownValue, setDropdownValue] = useState<null | string>(null);
   const [dropdownOptions, setDropdownOptions] = useState<Array<{ value: string }>>([{ value: '0' },]);
   const [isExactFitEnabled, setIsExactFitEnabled] = useState(false);
-  const [evenFitsOnly, setEvenFitsOnly] = useState<boolean>(false);
   const [originalExactFits, setOriginalExactFits] = useState<number[]>([]);
   const [evenRowsColumns, setEvenRowsColumns] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
