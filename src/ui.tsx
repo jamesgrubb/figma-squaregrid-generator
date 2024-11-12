@@ -51,12 +51,10 @@ function Plugin() {
     );
   };
   
-  console.log(isEnabled)
 
   useEffect(() => {
     on<FrameSelectionHandler>('FRAME_SELECTED', (event) => {
-       console.log('Frame selected event received:', event);
-      setIsEnabled(event.isFrameSelected);     
+       setIsEnabled(event.isFrameSelected);     
     });
   }, [isEnabled]);
 
@@ -65,18 +63,11 @@ function Plugin() {
   useEffect(() => {
     const cellCountHandler = (event: { possibleCellCounts: number[], exactFitCounts: number[] } | undefined) => {
       if (event?.possibleCellCounts && Array.isArray(event.possibleCellCounts)) {
-        console.log('Initial Cell Count Handler:', {
-          possibleCounts: event.possibleCellCounts,
-          exactFitCounts: event.exactFitCounts,
-          currentCount: cellCount
-        });
-        
         setSteps(event.possibleCellCounts);
         
         // Set initial cell count only if it hasn't been set or is invalid
         if (cellCount === null || !event.possibleCellCounts.includes(cellCount)) {
           const initialCount = event.possibleCellCounts[0];
-          console.log('Setting initial cell count:', initialCount);
           setCellCount(initialCount);
           emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: initialCount.toString() });
         }
@@ -96,12 +87,9 @@ function Plugin() {
 
   
 
-  console.log('dropdown values',dropdownValue)
-
   const handleDropdownCellCountChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
     const target = event.currentTarget as HTMLInputElement;
     const newValue = target?.value;
-    console.log('newValue', newValue)
     setDropdownValue(newValue);
     setCellCount(parseInt(newValue));
     emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: newValue });
@@ -149,13 +137,6 @@ function Plugin() {
     emit('CREATE_GRID', { cellCount })
     setIsGridCreated(true);
   }
-  const currentStepIndex = steps.indexOf(cellCount ?? 0);
-  console.log('currentStepIndex', currentStepIndex)
-
-
-
-  const minStep = steps.length > 0 ? Math.min(...steps) : 0; // Fallback to 0 if no steps
-  const maxStep = steps.length > 0 ? Math.max(...steps) : 300; // Fallback to 300 if no steps
 
 
 
@@ -208,8 +189,6 @@ function Plugin() {
         return Number.isInteger(sqrt) && (sqrt % 2 === 0);
       });
 
-      console.log('Valid even grid counts:', validCounts);
-
       if (newValue && cellCount !== null) {
         // Check if there are valid exact fits with even rows/columns
         const validExactFits = originalExactFits.filter(num => {
@@ -250,13 +229,6 @@ function Plugin() {
         return Number.isInteger(sqrt) && sqrt % 2 === 0;
       });
 
-      console.log('Steps update:', {
-        validCounts,
-        currentCount: cellCount,
-        perfectFitNumber,
-        isExactFitEnabled
-      });
-
       // Update cell count if needed
           if (!validCounts.includes(cellCount ?? 0)) {
         const nearestCount = validCounts.reduce((prev, curr) => 
@@ -274,16 +246,6 @@ function Plugin() {
     }
   }, [steps, evenRowsColumns]);
 
-  // Add this effect to track state changes
-  useEffect(() => {
-    console.log('State Debug:', {
-      originalExactFits,
-      evenRowsColumns,
-      perfectFitNumber,
-      isExactFitEnabled
-    });
-  }, [originalExactFits, evenRowsColumns, perfectFitNumber, isExactFitEnabled]);
-
   // Update the shouldShowExactFitToggle function
   const shouldShowExactFitToggle = () => {
     // No exact fits available at all
@@ -295,8 +257,6 @@ function Plugin() {
         const sqrt = Math.sqrt(num);
         return Number.isInteger(sqrt) && sqrt % 2 === 0;
       });
-      
-      console.log('Even square exact fits:', evenSquareExactFits);
       
       // Show toggle if we have valid even square exact fits
       return evenSquareExactFits.length > 0;
