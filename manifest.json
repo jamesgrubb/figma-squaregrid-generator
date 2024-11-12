@@ -6,5 +6,6 @@
   "id": "1438210989363069032",
   "name": "You're so square",
   "main": "build/main.js",
-  "ui": "build/ui.js"
+  "ui": "build/ui.js",
+  "networkAccess": { "allowedDomains": "none" }
 }
