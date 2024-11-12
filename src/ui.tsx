@@ -25,29 +25,18 @@ import { CellCountPicker } from './components/CellCountPicker';
 function Plugin() {
   const [cellCount, setCellCount] = useState<number | null>(null);
   const [steps, setSteps] = useState<number[]>([])
-  const [isEnabled, setIsEnabled] = useState<boolean>(false);
-  
-  const [isGridCreated, setIsGridCreated] = useState(false);
-  
-  
-  
+  const [isEnabled, setIsEnabled] = useState<boolean>(false);  
+  const [isGridCreated, setIsGridCreated] = useState(false);  
   const [dropdownValue, setDropdownValue] = useState<null | string>(null);
   const [dropdownOptions, setDropdownOptions] = useState<Array<{ value: string }>>([{ value: '0' },]);
-  const [exactFit, setExactFit] = useState<boolean>(false);
-  const [showDropdown, setShowDropdown] = useState<boolean>(false);
-  const [exactFitCount, setExactFitCount] = useState<number | null>(null);
   const [isExactFitEnabled, setIsExactFitEnabled] = useState(false);
-  
   const [evenFitsOnly, setEvenFitsOnly] = useState<boolean>(false);
   const [originalExactFits, setOriginalExactFits] = useState<number[]>([]);
   const [evenRowsColumns, setEvenRowsColumns] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [evenExactFits, setEvenExactFits] = useState<number[]>([]);
   const [perfectFitNumber, setPerfectFitNumber] = useState<number | null>(null);
 
 
-
- 
 
   const handleCellCountChange = (value: string) => {
     const numberValue = parseInt(value, 10);
@@ -60,11 +49,7 @@ function Plugin() {
   const findClosestStep = (value: number): number => {
     if (steps.length === 0) return value;
     
-    const validSteps = evenFitsOnly 
-      ? steps.filter(step => step % 2 === 0)
-      : steps;
-    
-    return validSteps.reduce((prev, curr) => 
+    return steps.reduce((prev, curr) => 
       Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev
     );
   };
@@ -159,7 +144,7 @@ function Plugin() {
       emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestValue.toString() });
     }
   
-    setShowDropdown(newValue);
+    
     emit<ExactFitHandler>('EXACT_FIT', { exactFit: newValue });
   }
 
@@ -417,7 +402,7 @@ function Plugin() {
             >
               Create
             </Button>
-            <Text className="text-center"><Muted>This tool creates a grid based on the size of your frame</Muted></Text>
+            <Text className="text-center"><Muted>This tool creates a grid based on the size of your selected frame.</Muted></Text>
             </div>
           ) : (
             <div className="z-10 flex h-full rounded-md overflow-clip bg-slate-400">
