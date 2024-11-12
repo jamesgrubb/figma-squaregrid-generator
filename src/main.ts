@@ -1,4 +1,3 @@
-
 /// <reference types="@figma/plugin-typings" />
 
 import { showUI, on, emit } from '@create-figma-plugin/utilities';
@@ -76,14 +75,12 @@ export default function () {
       isGridCreated = true;
       
       const { possibleCounts, exactFitCounts, evenGridCounts } = getPossibleCellCounts(lastWidth, lastHeight, 300, forceEvenGrid);
-      console.log('from main exactFitCounts', exactFitCounts)
       
       emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { possibleCellCounts: possibleCounts, exactFitCounts, evenGridCounts });
     }
   });
 
   on<ExactFitHandler>('EXACT_FIT', (data) => {
-    console.log('Exact fit changed:', data.exactFit);
   });
 
   on<CellCountHandler>('CELL_COUNT_CHANGE', function({ cellCount }) {
@@ -100,7 +97,6 @@ export default function () {
     emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected });
 
     if (!isFrameSelected && selectedFrame !== null) {
-      console.log('Frame deselected. Closing plugin.');
       figma.notify('Frame deselected. The plugin will now close.');
       figma.closePlugin();
     }
@@ -109,7 +105,6 @@ export default function () {
   figma.on('documentchange', (event) => {
     if (isGridCreated && selectedFrame && !isNewFrameSelected) {
       if (!figma.getNodeById(selectedFrame.id)) {
-        console.log('Selected frame has been removed');
         emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected: false });
         figma.notify('The selected frame has been removed. The plugin will now close.');
         figma.closePlugin();
@@ -125,7 +120,6 @@ export default function () {
   
         // Recalculate possible cell counts and exact fit counts
         const { possibleCounts, exactFitCounts } = getPossibleCellCounts(lastWidth, lastHeight, 300, forceEvenGrid);
-        console.log('Frame resized. New exactFitCounts:', exactFitCounts);
         
         // Find the single perfect fit
         const singlePerfectFit = findSinglePerfectFit(exactFitCounts);
@@ -176,7 +170,6 @@ function checkSelectionWithoutSideEffects(): boolean {
 
 function checkSelection(): boolean {
   if (!figma.currentPage.selection.length) {
-    console.log('No selection');
     selectedFrame = null;
     selectedFrameId = null;
     isNewFrameSelected = false;
@@ -207,9 +200,7 @@ function checkSelection(): boolean {
 }
 
 function updateGrid(cells: number) {
-  console.log('autoPopulate', autoPopulate);
   if (!selectedFrame || !figma.getNodeById(selectedFrame.id)) {
-    console.log('No selected frame');
     return;
   }
 
@@ -217,20 +208,17 @@ function updateGrid(cells: number) {
   const frameHeight = Math.floor(selectedFrame.height);
 
   if (isNaN(frameWidth) || isNaN(frameHeight) || frameWidth <= 0 || frameHeight <= 0) {
-    console.log('Invalid frame dimensions:', frameWidth, frameHeight);
     return;
   }
 
-  
-  const availableWidth = frameWidth ;
-  const availableHeight = frameHeight ;
+  const availableWidth = frameWidth;
+  const availableHeight = frameHeight;
 
   const grid = fitSquaresInRectangle(availableWidth, availableHeight, cells, forceEvenGrid);
   if (!grid) {
-    console.log('No valid grid configuration found');
     return;
   }
-  
+
   const nrows = grid.nrows;
   const ncols = grid.ncols;
   const cell_size = grid.cell_size;
@@ -238,7 +226,6 @@ function updateGrid(cells: number) {
   const gridHeight = grid.used_height;
 
   if (isNaN(gridWidth) || isNaN(gridHeight) || gridWidth <= 0 || gridHeight <= 0) {
-    console.log('Invalid grid dimensions:', gridWidth, gridHeight);
     return;
   }
 
@@ -260,7 +247,6 @@ function updateGrid(cells: number) {
   try {
     selectedFrame.appendChild(gridFrame);
   } catch (error) {
-    console.log('Error appending gridFrame to selectedFrame:', error);
     return;
   }
 
