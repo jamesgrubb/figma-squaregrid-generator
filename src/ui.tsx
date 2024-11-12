@@ -33,6 +33,7 @@ function Plugin() {
   const [isLoading, setIsLoading] = useState(false);
   const [perfectFitNumber, setPerfectFitNumber] = useState<number | null>(null);
   const [isResizing, setIsResizing] = useState(false);
+  const [hadExactFits, setHadExactFits] = useState(false);
 
 
 
@@ -74,12 +75,10 @@ function Plugin() {
         
         // Handle exact fits first
         if (event.exactFitCounts && Array.isArray(event.exactFitCounts)) {
-          console.log('Setting exact fits:', event.exactFitCounts);
-          setOriginalExactFits(prev => {
-            console.log('Previous exact fits:', prev);
-            console.log('New exact fits:', event.exactFitCounts);
-            return event.exactFitCounts;
-          });
+          if (event.exactFitCounts.length > 0) {
+            setHadExactFits(true);
+          }
+          setOriginalExactFits(event.exactFitCounts);
           
           // If there's exactly one perfect fit
           if (event.exactFitCounts.length === 1) {
@@ -152,6 +151,7 @@ function Plugin() {
     setIsExactFitEnabled(false);
     setOriginalExactFits([]);
     setPerfectFitNumber(null);
+    setHadExactFits(false);
   }
 
 
@@ -285,7 +285,11 @@ function Plugin() {
       // Always update steps first
       setSteps(event.possibleCellCounts);
       
-      // Update exact fits
+      // Update exact fits and track if we had them
+      if (event.exactFitCounts.length > 0) {
+        setHadExactFits(true);
+      }
+      // Don't reset hadExactFits here even if exactFitCounts is empty
       setOriginalExactFits(event.exactFitCounts);
       
       // If exact fit is enabled but no exact fits available, disable it
@@ -317,7 +321,7 @@ function Plugin() {
     };
 
     on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', handleResize);
-  }, [isExactFitEnabled, cellCount]); // Add dependencies
+  }, [isExactFitEnabled, cellCount]); // Remove hadExactFits from dependencies
 
   // Update shouldShowExactFitToggle
   const shouldShowExactFitToggle = () => {
@@ -359,9 +363,18 @@ function Plugin() {
       steps,
       originalExactFits,
       isResizing,
-      dropdownOptions
+      dropdownOptions,
+      hadExactFits,
+      evenRowsColumns
     });
-  }, [isExactFitEnabled, cellCount, steps, originalExactFits, isResizing, dropdownOptions]);
+  }, [isExactFitEnabled, cellCount, steps, originalExactFits, isResizing, dropdownOptions, hadExactFits, evenRowsColumns]);
+
+  // Add this effect to track when exact fits become available/unavailable
+  useEffect(() => {
+    if (originalExactFits.length > 0) {
+      setHadExactFits(true);
+    }
+  }, [originalExactFits]);
 
   return (
     <div className="relative h-full text-balance">
@@ -430,15 +443,32 @@ function Plugin() {
             >
               <Text>{isLoading ? 'Calculating...' : 'Even rows and columns'}</Text>
             </Toggle>
+            
+            {console.log('Message conditions:', {
+              evenRowsColumns,
+              hadExactFits,
+              originalExactFitsLength: originalExactFits.length
+            })}
+            
+            {evenRowsColumns && hadExactFits && (
+              // Check if any exact fits work with even rows/columns
+              !originalExactFits.some(num => {
+                const sqrt = Math.sqrt(num);
+                return Number.isInteger(sqrt) && sqrt % 2 === 0;
+              }) && (
+                <Text className="mt-2">
+                  <Muted>Match frame size is unavailable with even rows and columns for this frame.</Muted>
+                </Text>
+              )
+            )}
+            
             {shouldShowExactFitToggle() && (
               <Toggle
                 onChange={handleExactFitChange}
                 value={isExactFitEnabled}
                 disabled={isResizing}
               >
-                <Text>
-                  {isResizing ? 'Calculating...' : 'Match frame size'}
-                </Text>
+                <Text>{isResizing ? 'Calculating...' : 'Match frame size'}</Text>
               </Toggle>
             )}
           </div>
