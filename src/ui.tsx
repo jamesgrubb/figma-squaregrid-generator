@@ -11,6 +11,7 @@ import {
   VerticalSpace,
   render,
   Banner,
+  IconInfo32,
   IconWarning32,
   TextboxNumeric,
   Muted,
@@ -360,10 +361,11 @@ function Plugin() {
             <div>
               {perfectFitNumber ? (
                 
-                  <div><VerticalSpace space="large" /><TextboxNumeric
+                  <div>                    
+                  <TextboxNumeric
                     icon={<IconTidyGrid32 />}
                     variant='border'
-                    disabled={true}
+                    disabled={false}
                     value={perfectFitNumber.toString()} /><VerticalSpace space="small" /></div>
                 
               ) : (
@@ -376,7 +378,9 @@ function Plugin() {
             </div>
           )}
           </div>
+
           <div className="flex flex-col space-y-1">
+            <Text className="mb-1"><Bold>Options</Bold></Text>
             <Toggle
               onChange={handleEvenRowsColumnsChange}
               value={evenRowsColumns}
@@ -391,7 +395,7 @@ function Plugin() {
                 value={isExactFitEnabled}
               >
                 <Text>
-                  {perfectFitNumber ? 'Show 1 perfect fit' : 'Show perfect fits'}
+                  {perfectFitNumber ? 'Match frame size' : 'Match frame size'}
                 </Text>
               </Toggle>
             
@@ -402,21 +406,22 @@ function Plugin() {
 
       {!isGridCreated && (
         <Container className="absolute inset-0 flex flex-col justify-between p-4" space="medium">    
-          <Text className="h-min">
-            <Muted>This tool forces a square grid based on the size of its outer frame.</Muted>
-          </Text>
+          
           
           {isEnabled ? (
+            <div className="flex flex-col justify-around h-full">
             <Button 
               className="mt-4" 
               fullWidth 
               onClick={handleCreateGrid}
             >
-              Create Grid
+              Create
             </Button>
+            <Text className="text-center"><Muted>This tool creates a grid based on the size of your frame</Muted></Text>
+            </div>
           ) : (
-            <div className="z-10 rounded-md overflow-clip">
-              <Banner icon={<IconWarning32 />} variant="warning">      
+            <div className="z-10 flex h-full rounded-md overflow-clip bg-slate-400">
+              <Banner  icon={<IconInfo32 />} >      
                 Please select or create a frame to begin
               </Banner>
             </div>
