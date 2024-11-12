@@ -430,6 +430,10 @@ function Plugin() {
             >
               <Text>{isLoading ? 'Calculating...' : 'Even rows and columns'}</Text>
             </Toggle>
+            
+            {/* Add explanation when exact fits are hidden */}
+            
+            
             {shouldShowExactFitToggle() && (
               <Toggle
                 onChange={handleExactFitChange}
@@ -442,6 +446,9 @@ function Plugin() {
               </Toggle>
             )}
           </div>
+          {evenRowsColumns && originalExactFits.length > 0 && !shouldShowExactFitToggle() && (
+              <Text className="mt-2"><Muted>Match frame size is unavailable with even rows and columns for this frame.</Muted></Text>
+            )}
         </div>
       </Container>}
 

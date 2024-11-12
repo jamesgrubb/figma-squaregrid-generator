@@ -30,7 +30,7 @@ let resizeTimeout: number | null = null;
 
 export default function () {
   showUI({
-    height: 140,
+    height: 160,
     width: 240
   });
 
