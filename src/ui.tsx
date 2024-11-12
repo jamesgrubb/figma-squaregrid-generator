@@ -11,12 +11,10 @@ import {
   VerticalSpace,
   render,
   Banner,
-  IconInfo32,
-  IconWarning32,
+  IconInfo32,  
   TextboxNumeric,
   Muted,
   Bold,
-  Columns // We'll create this component
 } from '@create-figma-plugin/ui'
 import { emit, on } from '@create-figma-plugin/utilities'
 import { FrameSelectionHandler, PossibleCellCountsHandler, CellCountHandler, ExactFitHandler } from './types'
