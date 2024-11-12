@@ -26,6 +26,8 @@ let selectedFrameId: string | null = null;
 let isNewFrameSelected: boolean = false;
 let isGridCreated: boolean = false;
 let forceEvenGrid: boolean = false;
+let resizeTimeout: number | null = null;
+
 export default function () {
   showUI({
     height: 140,
@@ -76,7 +78,18 @@ export default function () {
       
       const { possibleCounts, exactFitCounts, evenGridCounts } = getPossibleCellCounts(lastWidth, lastHeight, 300, forceEvenGrid);
       
-      emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { possibleCellCounts: possibleCounts, exactFitCounts, evenGridCounts });
+      // Find the single perfect fit
+      const singlePerfectFit = findSinglePerfectFit(exactFitCounts);
+      
+      // Emit all necessary updates
+      emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { 
+        possibleCellCounts: possibleCounts, 
+        exactFitCounts,
+        evenGridCounts 
+      });
+      
+      emit<PerfectFitsHandler>('PERFECT_FITS', { perfectFits: exactFitCounts });
+      emit<SinglePerfectFitHandler>('SINGLE_PERFECT_FIT', { singlePerfectFit });
     }
   });
 
@@ -113,25 +126,31 @@ export default function () {
   
       const currentWidth = selectedFrame.width;
       const currentHeight = selectedFrame.height;
+      
       if (currentWidth !== lastWidth || currentHeight !== lastHeight) {
+        console.log('Frame resized:', { currentWidth, currentHeight });
+        
         lastWidth = currentWidth;
         lastHeight = currentHeight;
-        updateGrid(lastCells);
-  
+        
         // Recalculate possible cell counts and exact fit counts
-        const { possibleCounts, exactFitCounts } = getPossibleCellCounts(lastWidth, lastHeight, 300, forceEvenGrid);
+        const { possibleCounts, exactFitCounts, evenGridCounts } = getPossibleCellCounts(lastWidth, lastHeight, 300, forceEvenGrid);
         
-        // Find the single perfect fit
-        const singlePerfectFit = findSinglePerfectFit(exactFitCounts);
+        console.log('New calculations:', {
+          possibleCounts,
+          exactFitCounts,
+          evenGridCounts
+        });
         
-        // Emit the updated counts to the UI
-        emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { possibleCellCounts: possibleCounts, exactFitCounts });
+        // Emit the updates
+        emit<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', { 
+          possibleCellCounts: possibleCounts, 
+          exactFitCounts,
+          evenGridCounts 
+        });
         
-        // Emit the updated perfect fits
-        emit<PerfectFitsHandler>('PERFECT_FITS', { perfectFits: exactFitCounts });
-        
-        // Emit the single perfect fit
-        emit<SinglePerfectFitHandler>('SINGLE_PERFECT_FIT', { singlePerfectFit });
+        // Update grid with current cell count
+        updateGrid(lastCells);
       }
     }
   });

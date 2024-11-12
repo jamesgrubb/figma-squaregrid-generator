@@ -32,6 +32,7 @@ function Plugin() {
   const [evenRowsColumns, setEvenRowsColumns] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
   const [perfectFitNumber, setPerfectFitNumber] = useState<number | null>(null);
+  const [isResizing, setIsResizing] = useState(false);
 
 
 
@@ -61,31 +62,49 @@ function Plugin() {
   
 
   useEffect(() => {
-    const cellCountHandler = (event: { possibleCellCounts: number[], exactFitCounts: number[] } | undefined) => {
+    const cellCountHandler = (event: { 
+      possibleCellCounts: number[], 
+      exactFitCounts: number[],
+      evenGridCounts: number[] 
+    } | undefined) => {
+      console.log('Received cell count event:', event);
+      
       if (event?.possibleCellCounts && Array.isArray(event.possibleCellCounts)) {
         setSteps(event.possibleCellCounts);
         
-        // Set initial cell count only if it hasn't been set or is invalid
+        // Handle exact fits first
+        if (event.exactFitCounts && Array.isArray(event.exactFitCounts)) {
+          console.log('Setting exact fits:', event.exactFitCounts);
+          setOriginalExactFits(prev => {
+            console.log('Previous exact fits:', prev);
+            console.log('New exact fits:', event.exactFitCounts);
+            return event.exactFitCounts;
+          });
+          
+          // If there's exactly one perfect fit
+          if (event.exactFitCounts.length === 1) {
+            setPerfectFitNumber(event.exactFitCounts[0]);
+          } else {
+            setPerfectFitNumber(null);
+          }
+        }
+        
+        // Set initial cell count if needed
         if (cellCount === null || !event.possibleCellCounts.includes(cellCount)) {
           const initialCount = event.possibleCellCounts[0];
           setCellCount(initialCount);
           emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: initialCount.toString() });
         }
-
-        // Handle exact fits
-        if (event.exactFitCounts) {
-          setOriginalExactFits(event.exactFitCounts);
-          if (event.exactFitCounts.length === 1) {
-            setPerfectFitNumber(event.exactFitCounts[0]);
-          }
-        }
       }
     };
 
     on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', cellCountHandler);
-  }, []); // Only run once on mount
+  }, []);
 
-  
+  // Add effect to monitor originalExactFits changes
+  useEffect(() => {
+    console.log('originalExactFits updated:', originalExactFits);
+  }, [originalExactFits]);
 
   const handleDropdownCellCountChange = (event: h.JSX.TargetedEvent<HTMLInputElement>) => {
     const target = event.currentTarget as HTMLInputElement;
@@ -106,22 +125,14 @@ function Plugin() {
   
     if (newValue) {
       // Switching to dropdown (exact fit)
-      let newCellCount: number;
-      if (dropdownOptions.length > 0 && dropdownOptions[0].value !== 'No exact fits') {
-        // Find the nearest exact fit value to the current cellCount
-        const nearestOption = dropdownOptions.reduce((prev, curr) => {
-          const prevValue = parseInt(prev.value, 10);
-          const currValue = parseInt(curr.value, 10);
-          return Math.abs(currValue - (cellCount ?? 0)) < Math.abs(prevValue - (cellCount ?? 0)) ? curr : prev;
-        });
-        newCellCount = parseInt(nearestOption.value, 10);
-      } else {
-        // If no exact fits, keep the current cellCount, defaulting to 0 if null
-        newCellCount = cellCount ?? 0;
+      if (originalExactFits.length > 0) {
+        const nearestExactFit = originalExactFits.reduce((prev, curr) => 
+          Math.abs(curr - (cellCount ?? 0)) < Math.abs(prev - (cellCount ?? 0)) ? curr : prev
+        );
+        setCellCount(nearestExactFit);
+        setDropdownValue(nearestExactFit.toString());
+        emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestExactFit.toString() });
       }
-      setCellCount(newCellCount);
-      setDropdownValue(newCellCount.toString());
-      emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: newCellCount.toString() });
     } else {
       // Switching to range slider
       const nearestValue = findClosestStep(cellCount ?? 0);
@@ -134,14 +145,19 @@ function Plugin() {
   }
 
   function handleCreateGrid() {
-    emit('CREATE_GRID', { cellCount })
+    emit('CREATE_GRID', { cellCount });
     setIsGridCreated(true);
+    
+    // Reset exact fit state when creating new grid
+    setIsExactFitEnabled(false);
+    setOriginalExactFits([]);
+    setPerfectFitNumber(null);
   }
 
 
 
 
-  // Add this effect to handle the interaction between evenRowsColumns and exactFit
+  // Add effect to handle the interaction between evenRowsColumns and exactFit
   useEffect(() => {
     if (isExactFitEnabled) {
       const exactFits = evenRowsColumns 
@@ -153,8 +169,17 @@ function Plugin() {
       
       setDropdownOptions(exactFits.map(count => ({ value: count.toString() })));
       
-      // Update to nearest valid value
-      if (exactFits.length > 0) {
+      // If no exact fits are available, disable exact fit mode
+      if (exactFits.length === 0) {
+        setIsExactFitEnabled(false);
+        emit<ExactFitHandler>('EXACT_FIT', { exactFit: false });
+        
+        // Switch to nearest non-exact value
+        const nearestValue = findClosestStep(cellCount ?? 0);
+        setCellCount(nearestValue);
+        emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestValue.toString() });
+      } else {
+        // Update to nearest valid value
         const currentValue = parseInt(dropdownValue || '0');
         const nearestValue = exactFits.reduce((prev, curr) => 
           Math.abs(curr - currentValue) < Math.abs(prev - currentValue) ? curr : prev
@@ -246,81 +271,156 @@ function Plugin() {
     }
   }, [steps, evenRowsColumns]);
 
-  // Update the shouldShowExactFitToggle function
+  // Add this effect to handle resize updates
+  useEffect(() => {
+    const handleResize = (event: { 
+      possibleCellCounts: number[], 
+      exactFitCounts: number[],
+      evenGridCounts: number[] 
+    }) => {
+      console.log('Handling resize update:', event);
+      
+      setIsResizing(true);
+      
+      // Always update steps first
+      setSteps(event.possibleCellCounts);
+      
+      // Update exact fits
+      setOriginalExactFits(event.exactFitCounts);
+      
+      // If exact fit is enabled but no exact fits available, disable it
+      if (isExactFitEnabled && event.exactFitCounts.length === 0) {
+        setIsExactFitEnabled(false);
+        emit<ExactFitHandler>('EXACT_FIT', { exactFit: false });
+        
+        // Switch to nearest non-exact value
+        const nearestValue = findClosestStep(cellCount ?? 0);
+        setCellCount(nearestValue);
+        emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: nearestValue.toString() });
+      }
+      
+      // Update perfect fit number if applicable
+      if (event.exactFitCounts.length === 1) {
+        setPerfectFitNumber(event.exactFitCounts[0]);
+      } else {
+        setPerfectFitNumber(null);
+      }
+      
+      // Ensure we have valid dropdown options
+      if (event.exactFitCounts.length > 0) {
+        setDropdownOptions(event.exactFitCounts.map(count => ({ value: count.toString() })));
+      } else {
+        setDropdownOptions([{ value: '0' }]);
+      }
+      
+      setIsResizing(false);
+    };
+
+    on<PossibleCellCountsHandler>('POSSIBLE_CELL_COUNTS', handleResize);
+  }, [isExactFitEnabled, cellCount]); // Add dependencies
+
+  // Update shouldShowExactFitToggle
   const shouldShowExactFitToggle = () => {
-    // No exact fits available at all
-    if (originalExactFits.length === 0) return false;
+    console.log('Checking toggle visibility:', {
+      originalExactFits,
+      evenRowsColumns,
+      isResizing,
+      exactFitsLength: originalExactFits.length
+    });
     
+    // Don't show while calculating
+    if (isResizing) {
+      return false;
+    }
+    
+    // Check for exact fits
+    if (!originalExactFits || originalExactFits.length === 0) {
+      return false;
+    }
+    
+    // If even rows/columns is enabled, check for valid exact fits
     if (evenRowsColumns) {
-      // Filter exact fits that have even square roots
       const evenSquareExactFits = originalExactFits.filter(num => {
         const sqrt = Math.sqrt(num);
         return Number.isInteger(sqrt) && sqrt % 2 === 0;
       });
-      
-      // Show toggle if we have valid even square exact fits
       return evenSquareExactFits.length > 0;
     }
     
-    // Show toggle for normal case
-    return true;
+    // Show toggle if we have any exact fits
+    return originalExactFits.length > 0;
   };
+
+  // Add logging to track state changes
+  useEffect(() => {
+    console.log('State update:', {
+      isExactFitEnabled,
+      cellCount,
+      steps,
+      originalExactFits,
+      isResizing,
+      dropdownOptions
+    });
+  }, [isExactFitEnabled, cellCount, steps, originalExactFits, isResizing, dropdownOptions]);
 
   return (
     <div className="relative h-full text-balance">
       {isGridCreated && <Container space="medium">
-      
-        <div className="flex flex-col justify-between h-full gap-2 pt-2 pb-4">
-          <div> 
-            <Text><Bold>Cell Count</Bold></Text>        
-            <VerticalSpace space="small" />
-
-          
-          {!isExactFitEnabled ? (
+        <div className="flex flex-col justify-between h-full pb-4">
+          <div className="flex flex-col gap-2 pt-2 ">
             <div>
-              <TextboxNumeric
-                icon={<IconTidyGrid32 />}     
-                variant='border'
-                maximum={Math.max(...steps, 300)}
-                minimum={Math.min(...steps, 1)}
-                onValueInput={handleCellCountChange}
-                value={cellCount?.toString() ?? '0'}
-              />
-              <RangeSlider
-                maximum={Math.max(...steps, 300)}
-                minimum={Math.min(...steps, 1)}
-                value={cellCount?.toString() ?? '0'}
-                onValueInput={(value) => {
-                  const numericValue = parseInt(value, 10);
-                  const closestStep = findClosestStep(numericValue);
-                  setCellCount(closestStep);
-                  emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: closestStep.toString() });
-                }}
-              />
-              <VerticalSpace space="small" />
+              <Text><Bold>Cell Count</Bold></Text>
             </div>
-          ) : (
+          
             <div>
-              {perfectFitNumber ? (
-                
-                  <div>                    
+              {(isExactFitEnabled && dropdownOptions.length > 0) ? (
+                // Exact fit controls
+                <div>
+                  {perfectFitNumber ? (
+                    <div>
+                      <TextboxNumeric
+                        icon={<IconTidyGrid32 />}
+                        variant='border'
+                        disabled={true}
+                        value={perfectFitNumber.toString()}
+                      />
+                      <VerticalSpace space="small" />
+                    </div>
+                  ) : (
+                    <CellCountPicker
+                      cellCountOptions={dropdownOptions}
+                      dropdownCellCountChange={handleDropdownCellCountChange}
+                      dropdownValue={dropdownValue}
+                    />
+                  )}
+                </div>
+              ) : (
+                // Regular controls
+                <div>
                   <TextboxNumeric
                     icon={<IconTidyGrid32 />}
                     variant='border'
-                    disabled={true}
-                    value={perfectFitNumber.toString()} /><VerticalSpace space="small" /></div>
-                
-              ) : (
-                <CellCountPicker 
-                  cellCountOptions={dropdownOptions} 
-                  dropdownCellCountChange={handleDropdownCellCountChange}  
-                  dropdownValue={dropdownValue}
-                />
+                    maximum={Math.max(...(steps.length ? steps : [300]), 300)}
+                    minimum={Math.min(...(steps.length ? steps : [1]), 1)}
+                    onValueInput={handleCellCountChange}
+                    value={cellCount?.toString() ?? '0'}
+                  />
+                  <RangeSlider
+                    maximum={Math.max(...(steps.length ? steps : [300]), 300)}
+                    minimum={Math.min(...(steps.length ? steps : [1]), 1)}
+                    value={cellCount?.toString() ?? '0'}
+                    onValueInput={(value) => {
+                      const numericValue = parseInt(value, 10);
+                      const closestStep = findClosestStep(numericValue);
+                      setCellCount(closestStep);
+                      emit<CellCountHandler>('CELL_COUNT_CHANGE', { cellCount: closestStep.toString() });
+                    }}
+                  />
+                  <VerticalSpace space="small" />
+                </div>
               )}
             </div>
-          )}
           </div>
-
           <div className="flex flex-col space-y-1">
             <Text className="mb-1"><Bold>Options</Bold></Text>
             <Toggle
@@ -330,18 +430,17 @@ function Plugin() {
             >
               <Text>{isLoading ? 'Calculating...' : 'Even rows and columns'}</Text>
             </Toggle>
-        
             {shouldShowExactFitToggle() && (
               <Toggle
                 onChange={handleExactFitChange}
                 value={isExactFitEnabled}
+                disabled={isResizing}
               >
                 <Text>
-                  {perfectFitNumber ? 'Match frame size' : 'Match frame size'}
+                  {isResizing ? 'Calculating...' : 'Match frame size'}
                 </Text>
               </Toggle>
-            
-          )}
+            )}
           </div>
         </div>
       </Container>}
@@ -351,10 +450,8 @@ function Plugin() {
           
           
           {isEnabled ? (
-            <div className="flex flex-col justify-around h-full">
+            <div className="flex flex-col items-center justify-around h-full">
             <Button 
-              className="mt-4" 
-              fullWidth 
               onClick={handleCreateGrid}
             >
               Create
