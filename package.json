@@ -9,12 +9,17 @@
   "devDependencies": {
     "@create-figma-plugin/build": "^3.2.0",
     "@create-figma-plugin/tsconfig": "^3.2.0",
-    "@figma/plugin-typings": "^1.90.0",
-    
+    "@eslint/js": "^9.14.0",
+    "@figma/plugin-typings": "^1.102.0",
+    "@types/eslint__js": "^8.42.3",
     "@types/lodash": "^4.17.9",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
     "concurrently": ">=8",
+    "eslint": "^8.57.1",
     "tailwindcss": ">=3",
-    "typescript": ">=4"
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.14.0"
   },
   "scripts": {
     "build": "npm run build:css && npm run build:js",
@@ -28,9 +33,14 @@
     "editorType": [
       "figma"
     ],
-    "id": "preact-tailwindcss",
+    "id": "1438295282690666816",
     "name": "You're so square",
     "main": "src/main.ts",
-    "ui": "src/ui.tsx"
+    "ui": "src/ui.tsx",
+    "networkAccess": {
+      "allowedDomains": [
+        "none"
+      ]
+    }
   }
 }

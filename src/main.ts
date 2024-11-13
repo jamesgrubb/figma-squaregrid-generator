@@ -193,7 +193,7 @@ function checkSelectionWithoutSideEffects(): boolean {
     return false;
   }
 
-  let frame = figma.currentPage.selection[0];
+  const frame = figma.currentPage.selection[0];
   return frame.type === 'FRAME';
 }
 
@@ -205,7 +205,7 @@ function checkSelection(): boolean {
     return false;
   }
 
-  let frame = figma.currentPage.selection[0];
+  const frame = figma.currentPage.selection[0];
 
   if (frame.type !== 'FRAME') {
     figma.notify('Please select a frame, not another type of element');
