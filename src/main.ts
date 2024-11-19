@@ -486,3 +486,4 @@ function fitSquaresInRectangle(x: number, y: number, n: number, forceEvenGrid: b
     used_height: cell_size * nrows
   };
 }
+
