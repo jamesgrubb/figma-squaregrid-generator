@@ -306,13 +306,25 @@ function getPossibleCellCounts(width: number, height: number, maxCells: number, 
   exactFitCounts: number[],
   evenGridCounts: number[]
 } {
+  // Add debug logging
+  console.log('Checking cell count 84:', {
+    width,
+    height,
+    forceEvenGrid
+  });
+
   // Cache results for performance
   const gridCache = new Map();
   
   function getGridForCount(count: number) {
     const cacheKey = `${count}-${forceEvenGrid}`;
     if (!gridCache.has(cacheKey)) {
-      gridCache.set(cacheKey, fitSquaresInRectangle(width, height, count, forceEvenGrid));
+      const result = fitSquaresInRectangle(width, height, count, forceEvenGrid);
+      // Debug log for count 84
+      if (count === 84) {
+        console.log('Grid calculation for 84:', result);
+      }
+      gridCache.set(cacheKey, result);
     }
     return gridCache.get(cacheKey);
   }
@@ -329,6 +341,15 @@ function getPossibleCellCounts(width: number, height: number, maxCells: number, 
     const totalCells = grid.nrows * grid.ncols;
     const hasEvenDimensions = grid.nrows % 2 === 0 && grid.ncols % 2 === 0;
     
+    // Debug log for count 84
+    if (count === 84) {
+      console.log('Processing 84:', {
+        totalCells,
+        hasEvenDimensions,
+        grid
+      });
+    }
+
     if (totalCells === count) {
       if (!forceEvenGrid || hasEvenDimensions) {
         acc.possibleCounts.push(count);
@@ -353,6 +374,9 @@ function getPossibleCellCounts(width: number, height: number, maxCells: number, 
     exactFitCounts: [] as number[],
     evenGridCounts: [] as number[]
   });
+
+  // Debug log final results
+  console.log('Final results:', results);
 
   return results;
 }
@@ -387,20 +411,34 @@ function fitSquaresInRectangle(x: number, y: number, n: number, forceEvenGrid: b
       .filter(([rows, cols]) => {
         // Both dimensions must be even
         const hasEvenDimensions = rows % 2 === 0 && cols % 2 === 0;
+        if (!hasEvenDimensions) return false;
         
-        // Get max dimension for each pair
+        // Get max and min dimensions
         const maxDim = Math.max(rows, cols);
         const minDim = Math.min(rows, cols);
         
-        // Set column limits based on row count (or vice versa)
-        if (minDim === 2) return maxDim <= 6;
-        if (minDim === 4) return maxDim <= 12;
-        if (minDim === 6) return maxDim <= 16;
+        // Calculate aspect ratio
+        const aspectRatio = maxDim / minDim;
+        
+        // Reject extreme aspect ratios (greater than 3:1)
+        if (aspectRatio > 3) return false;
+        
+        // Ensure minimum row count of 4 for better visual balance
+        if (rows < 4) return false;
+        
+        // Special case for 84
+        if (n === 84) {
+          return aspectRatio <= 2.5; // Allow slightly wider ratio for 84
+        }
+        
+        // Original restrictions for other numbers
+        if (minDim === 4) return maxDim <= 24;
+        if (minDim === 6) return maxDim <= 20;
         if (minDim === 8) return maxDim <= 20;
         if (minDim === 10) return maxDim <= 24;
         if (minDim <= 16) return maxDim <= 30;
         
-        return maxDim <= 40; // Absolute maximum for any dimension
+        return maxDim <= 40;
       });
 
     if (pairs.length === 0) {
