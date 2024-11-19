@@ -1,8 +1,8 @@
 {
   "extends": "@create-figma-plugin/tsconfig",
   "compilerOptions": {
-    "typeRoots": ["node_modules/@figma", "node_modules/@types"],
-    "forceConsistentCasingInFileNames": true
+    "typeRoots": ["./node_modules/@figma"],
+    "types": ["@figma/plugin-typings"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }
