@@ -26,7 +26,6 @@ let selectedFrameId: string | null = null;
 let isNewFrameSelected: boolean = false;
 let isGridCreated: boolean = false;
 let forceEvenGrid: boolean = false;
-let resizeTimeout: number | null = null;
 
 export default function () {
   showUI({
@@ -103,7 +102,7 @@ export default function () {
     }
   });
 
-  on<ExactFitHandler>('EXACT_FIT', (data) => {
+  on<ExactFitHandler>('EXACT_FIT', () => {
   });
 
   on<CellCountHandler>('CELL_COUNT_CHANGE', function({ cellCount }) {
@@ -125,7 +124,7 @@ export default function () {
     }
   });
 
-  figma.on('documentchange', (event) => {
+  figma.on('documentchange', () => {
     if (isGridCreated && selectedFrame && !isNewFrameSelected) {
       if (!figma.getNodeById(selectedFrame.id)) {
         emit<FrameSelectionHandler>('FRAME_SELECTED', { isFrameSelected: false });
@@ -280,12 +279,13 @@ function updateGrid(cells: number) {
   try {
     selectedFrame.appendChild(gridFrame);
   } catch (error) {
+    console.error('Error appending grid frame:', error);
     return;
   }
 
   
 
-  let layoutGrids: LayoutGrid[] = [
+  const layoutGrids: LayoutGrid[] = [
     {
       pattern: 'GRID',
       sectionSize: cell_size,
